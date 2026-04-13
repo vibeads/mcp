@@ -1,6 +1,7 @@
 {
   "name": "@vibeads/mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "mcpName": "io.github.vibeads/mcp",
   "description": "Official VibeAds MCP server — talk to your Google Ads account from Claude Desktop, Cursor, or any MCP-compatible client. Built for local service businesses (plumbers, HVAC, electricians, roofers, and 33 more categories).",
   "keywords": [
     "mcp",
@@ -15,8 +16,7 @@
   "homepage": "https://getvibeads.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/vibeads/vibeads",
-    "directory": "packages/vibeads-mcp"
+    "url": "https://github.com/vibeads/mcp"
   },
   "author": "VibeAds",
   "license": "MIT",

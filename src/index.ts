@@ -18,7 +18,7 @@
  *   - get_diagnostics          — full agent-optimize diagnostics list
  *
  * License: MIT
- * Source:  https://github.com/vibeads/vibeads/tree/main/packages/vibeads-mcp
+ * Source:  https://github.com/vibeads/mcp
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";

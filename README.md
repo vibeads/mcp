@@ -207,7 +207,7 @@ Make sure you have Node.js 20+ installed: `node --version`. Claude Desktop and C
 ## Contributing
 
 This is an open-source MIT package. Issues and PRs welcome at:
-**https://github.com/vibeads/vibeads**
+**https://github.com/vibeads/mcp/issues**
 
 ---
 
