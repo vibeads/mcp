@@ -10,7 +10,7 @@
 
 The official [Model Context Protocol](https://modelcontextprotocol.io) server for [VibeAds](https://getvibeads.com). Ask Claude questions like "which search terms are wasting my budget?" or "what's my account health score?" and get answers pulled from your live campaign data.
 
-Unlike generic Google Ads MCP servers, this one is pre-tuned for **local service businesses** and rolls up 35+ diagnostic rules into a single 0-100 account health score across 6 dimensions.
+Unlike generic Google Ads MCP servers, this one is pre-tuned for **local service businesses** and rolls up 35+ diagnostic rules into a single 0-100 account health score across 6 dimensions. On Pro/Max plans it can also draft campaign strategies, execute guarded optimizations, and kick off publish flows — with a human always approving anything that spends money.
 
 ---
 
@@ -20,7 +20,8 @@ Unlike generic Google Ads MCP servers, this one is pre-tuned for **local service
 - 📊 **Account Health Score 0-100** — weighted across 6 dimensions (Tracking, Keywords, Budget, Creative, Targeting, Performance)
 - 🔍 **Search term waste detection** — finds every dollar burning on zero-conversion terms
 - 💡 **Diagnostic rollup** — 35+ rules from VibeAds' optimization engine, ranked by severity
-- 🔒 **Read-only by design** — API keys cannot modify your campaigns
+- ✍️ **Write tools (Pro/Max)** — draft strategies, approve optimizations, and start publish flows through the VibeAds gateway
+- 🔒 **Safe by design** — read tools can't modify anything; write tools run inside VibeAds' safety guardrails, and publishing always requires a human to approve in the browser
 - ⚡ **No GAQL required** — ask questions in natural language, get markdown answers
 
 ---
@@ -29,7 +30,7 @@ Unlike generic Google Ads MCP servers, this one is pre-tuned for **local service
 
 ### Step 1 — Get your API key
 
-Sign in to your [VibeAds account](https://getvibeads.com) and generate a read-only API key:
+Sign in to your [VibeAds account](https://getvibeads.com) and generate an API key:
 
 **[→ Generate API key](https://getvibeads.com/app/settings/mcp)**
 
@@ -77,6 +78,15 @@ Restart Claude Desktop. You should see the VibeAds tools appear in the 🔨 tool
 #### Cline / Claude Code / other MCP clients
 
 Use the same config as Claude Desktop above. Most MCP clients follow the same schema.
+
+### Environment variables
+
+Setup is one env var — every tool (read and write) runs through the secure server-side VibeAds gateway with your API key.
+
+| Variable | Required? | Purpose |
+|---|---|---|
+| `VIBEADS_API_KEY` | ✅ Required | Your `vba_mcp_...` key. This is the only credential any tool needs. |
+| `VIBEADS_SUPABASE_URL` | Optional | Override the VibeAds backend URL. Defaults to the production endpoint. |
 
 ---
 
@@ -128,6 +138,8 @@ Once configured, you can ask Claude questions like:
 
 ## Available tools
 
+### Read tools
+
 | Tool | Purpose |
 |---|---|
 | `list_campaigns` | Enumerate all campaigns with status, budget, category |
@@ -136,13 +148,34 @@ Once configured, you can ask Claude questions like:
 | `get_search_term_analysis` | Wasted spend + winners from search terms report (configurable lookback + threshold) |
 | `get_diagnostics` | Full list of active agent-optimize diagnostics with severity + recommended fix |
 
-All tools are **read-only**. They cannot create, modify, pause, or delete anything in your Google Ads account.
+The read tools are **read-only** — they cannot create, modify, pause, or delete anything in your Google Ads account. They run server-side through the VibeAds gateway and need only `VIBEADS_API_KEY`. Read tools work on any plan, free tier included.
+
+### Write tools (Pro/Max)
+
+Write tools talk to the secure server-side VibeAds gateway and need **only `VIBEADS_API_KEY`** — no Supabase keys. Every action runs inside VibeAds' safety guardrails (blast-radius caps, rate limits, auto-rollback if metrics worsen), and **publishing always requires a human approving in the browser** — the API key alone can never spend money.
+
+| Tool | Purpose |
+|---|---|
+| `generate_strategy` | Draft a full campaign strategy (keywords, ad copy, 3+ ad groups) server-side. Costs 13 credits. Draft only — nothing is published, no money is spent |
+| `get_strategy_status` | Poll a strategy job: status, phase, and drafted ad groups once complete |
+| `list_recommendations` | Pending optimization recommendations awaiting approval, with the session + recommendation IDs |
+| `approve_recommendation` | Execute ONE diagnosed optimization inside the safety guardrails; sibling recommendations stay pending |
+| `request_publish` | Start the publish flow — returns a human-approval URL because publishing spends real money |
+| `check_approval` | Poll a publish approval: pending → approved → executing → executed (or rejected / expired / failed) |
+
+**The approval-link flow:**
+
+1. The agent calls `request_publish` and shows you an approval link.
+2. You open the link in your browser and log in to VibeAds.
+3. You review the campaign + budget and click Approve (or Reject).
+4. The agent polls `check_approval` and continues once the campaign is live.
 
 ---
 
 ## Security
 
-- **API keys are read-only.** They cannot mutate your campaigns, your Google Ads account, or your VibeAds settings.
+- **Read tools are read-only.** They cannot mutate your campaigns, your Google Ads account, or your VibeAds settings.
+- **Write tools are guarded.** Every write action runs server-side inside VibeAds' safety guardrails (blast-radius caps, rate limits, automatic rollback), and publishing always requires a human approving in the browser — the API key can never approve ad spend by itself.
 - **Keys are hashed** with SHA-256 before storage. The full key is only shown once at creation.
 - **Revocable any time** from `https://getvibeads.com/app/settings/mcp`.
 - **Usage is logged** per-key: last-used timestamp and request count.
@@ -157,6 +190,7 @@ For maximum security, rotate your API key whenever a device changes hands or an 
 
 - **Node.js ≥ 20** (for `npx` runtime)
 - **Active VibeAds account** — free tier is sufficient to generate a key
+- **Pro or Max plan** — required for the write tools (read tools work on any plan)
 - **At least one published campaign** — diagnostics require synced data from Google Ads
 
 ---
@@ -172,7 +206,7 @@ For maximum security, rotate your API key whenever a device changes hands or an 
 | Account health score | ✅ 6 dimensions | ❌ | ❌ |
 | Pre-built diagnostics | ✅ 35+ rules | ❌ | ❌ |
 | Multi-account | ✅ | ✅ | ✅ |
-| Can mutate accounts | ❌ | ❌ | ❌ |
+| Guarded write actions | ✅ human-approved publish | ❌ | ❌ |
 
 **When to use VibeAds MCP:** You run a local service business (or manage ads for one) and want pre-tuned insights without learning GAQL.
 

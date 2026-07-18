@@ -1,0 +1,23 @@
+# Smithery configuration — https://smithery.ai/docs/build/project-config/smithery.yaml
+# Local (stdio) server run straight from npm via npx. The only config a user
+# supplies is their VibeAds MCP API key (generate at
+# https://getvibeads.com/app/settings/mcp).
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema for the config Smithery collects from the user.
+    type: object
+    required:
+      - vibeadsApiKey
+    properties:
+      vibeadsApiKey:
+        type: string
+        title: VibeAds API Key
+        description: >-
+          Your VibeAds MCP API key (prefix vba_mcp_). Generate one at
+          https://getvibeads.com/app/settings/mcp. Read tools work on any plan;
+          write tools require a Pro or Max subscription.
+  commandFunction:
+    # Returns the CLI command Smithery uses to launch the server over stdio.
+    |-
+      config => ({ command: 'npx', args: ['-y', '@vibeads/mcp'], env: { VIBEADS_API_KEY: config.vibeadsApiKey } })

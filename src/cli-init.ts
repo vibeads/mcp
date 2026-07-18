@@ -92,7 +92,8 @@ function printApiKeyInstructions() {
   console.log("  3. Copy the key (starts with vba_mcp_...)");
   console.log("  4. Paste it into the config above, replacing YOUR_KEY_HERE");
   console.log();
-  console.log("  Keys are read-only. They cannot modify your campaigns.");
+  console.log("  Read tools are read-only. Write tools run inside safety");
+  console.log("  guardrails — publishing always needs your approval in the browser.");
   console.log();
 }
 

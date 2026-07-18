@@ -1,17 +1,17 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.vibeads/mcp",
-  "description": "Talk to your Google Ads from Claude. 5 read-only tools for local service businesses.",
+  "description": "Manage Google Ads from Claude: read metrics, draft campaigns, publish with human approval.",
   "repository": {
     "url": "https://github.com/vibeads/mcp",
     "source": "github"
   },
-  "version": "0.1.1",
+  "version": "0.2.5",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@vibeads/mcp",
-      "version": "0.1.1",
+      "version": "0.2.5",
       "transport": {
         "type": "stdio"
       },

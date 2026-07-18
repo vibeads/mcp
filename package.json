@@ -1,8 +1,8 @@
 {
   "name": "@vibeads/mcp",
-  "version": "0.1.1",
+  "version": "0.2.5",
   "mcpName": "io.github.vibeads/mcp",
-  "description": "Official VibeAds MCP server — talk to your Google Ads account from Claude Desktop, Cursor, or any MCP-compatible client. Built for local service businesses (plumbers, HVAC, electricians, roofers, and 33 more categories).",
+  "description": "Official VibeAds MCP server \u2014 talk to your Google Ads account from Claude Desktop, Cursor, or any MCP-compatible client. Built for local service businesses (plumbers, HVAC, electricians, roofers, and 33 more categories).",
   "keywords": [
     "mcp",
     "model-context-protocol",
@@ -24,8 +24,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "vibeads-mcp": "./dist/index.js",
-    "vibeads-mcp-init": "./dist/cli-init.js"
+    "vibeads-mcp": "./dist/index.js"
   },
   "files": [
     "dist",
@@ -41,7 +40,6 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "@supabase/supabase-js": "^2.47.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {

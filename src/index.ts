@@ -10,12 +10,23 @@
  * more categories). Scoped access via VIBEADS_API_KEY generated at:
  *   https://getvibeads.com/app/settings/mcp
  *
- * Tools:
+ * Every tool runs through the server-side mcp-gateway Edge Function —
+ * VIBEADS_API_KEY is the only credential needed (no Supabase keys).
+ *
+ * Read tools (read-only, any plan):
  *   - list_campaigns           — enumerate user's campaigns
  *   - get_campaign_details     — deep dive on one campaign
  *   - get_account_health_score — 0-100 score across 6 dimensions
  *   - get_search_term_analysis — wasted spend + winners
  *   - get_diagnostics          — full agent-optimize diagnostics list
+ *
+ * Write/workflow tools (Pro/Max):
+ *   - generate_strategy        — draft a campaign strategy (nothing published)
+ *   - get_strategy_status      — poll a strategy generation job
+ *   - list_recommendations     — pending optimizations awaiting approval
+ *   - approve_recommendation   — execute ONE recommendation inside guardrails
+ *   - request_publish          — start publish flow (human-approval link)
+ *   - check_approval           — poll a publish approval / execution
  *
  * License: MIT
  * Source:  https://github.com/vibeads/mcp
@@ -29,9 +40,10 @@ import {
   ErrorCode,
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
+import type { ZodTypeAny } from "zod";
 import { zodToJsonSchema } from "./utils/zod-to-json-schema.js";
 
-import { authenticate } from "./supabase.js";
+import { requireApiKey } from "./gateway.js";
 import {
   listCampaigns,
   listCampaignsSchema,
@@ -52,15 +64,54 @@ import {
   getDiagnostics,
   getDiagnosticsSchema,
 } from "./tools/get-diagnostics.js";
+import {
+  generateStrategy,
+  generateStrategySchema,
+} from "./tools/generate-strategy.js";
+import {
+  getStrategyStatus,
+  getStrategyStatusSchema,
+} from "./tools/get-strategy-status.js";
+import {
+  listRecommendations,
+  listRecommendationsSchema,
+} from "./tools/list-recommendations.js";
+import {
+  approveRecommendation,
+  approveRecommendationSchema,
+} from "./tools/approve-recommendation.js";
+import {
+  requestPublish,
+  requestPublishSchema,
+} from "./tools/request-publish.js";
+import {
+  checkApproval,
+  checkApprovalSchema,
+} from "./tools/check-approval.js";
 
-const SERVER_VERSION = "0.1.0";
+const SERVER_VERSION = "0.2.5";
 const SERVER_NAME = "vibeads-mcp";
 
 // ---------------------------------------------------------------------------
 // Tool registry
 // ---------------------------------------------------------------------------
 
-const TOOLS = [
+/**
+ * Every tool — read and write — calls the server-side mcp-gateway Edge
+ * Function. The only credential is VIBEADS_API_KEY (sent per-request by
+ * the gateway client) — no Supabase keys ever live on the user's machine.
+ */
+interface ToolDef {
+  name: string;
+  description: string;
+  schema: ZodTypeAny;
+  handler: (input: any) => Promise<string>;
+}
+
+const TOOLS: readonly ToolDef[] = [
+  // -------------------------------------------------------------------------
+  // Read tools (read-only, any plan)
+  // -------------------------------------------------------------------------
   {
     name: "list_campaigns",
     description:
@@ -96,17 +147,72 @@ const TOOLS = [
     schema: getDiagnosticsSchema,
     handler: getDiagnostics,
   },
-] as const;
+  // -------------------------------------------------------------------------
+  // Write/workflow tools (Pro/Max)
+  // -------------------------------------------------------------------------
+  {
+    name: "generate_strategy",
+    description:
+      "Preview a DRAFT campaign strategy server-side: keywords, ad copy, and 3+ ad groups tailored to a service category, budget, and locations. Costs 13 VibeAds credits. Returns a jobId — poll get_strategy_status with that jobId. IMPORTANT: this is a preview only. It does NOT create a publishable campaign, so request_publish cannot act on it; the user applies the draft at https://getvibeads.com/app/new-campaign to turn it into a real campaign. Nothing is published and no ad money is spent.",
+    schema: generateStrategySchema,
+    handler: generateStrategy,
+  },
+  {
+    name: "get_strategy_status",
+    description:
+      "Poll the status of a strategy generation job started with generate_strategy. Returns status and phase while running, and the drafted ad groups (with keyword and headline counts) once complete. Poll every 10-15 seconds until status is completed or failed. The finished draft is a preview: show it to the user and point them to https://getvibeads.com/app/new-campaign to apply it as a real campaign — request_publish cannot publish a preview.",
+    schema: getStrategyStatusSchema,
+    handler: getStrategyStatus,
+  },
+  {
+    name: "list_recommendations",
+    description:
+      "List pending optimization recommendations awaiting approval, grouped by optimization session. Each recommendation includes action, reason, risk level, blast radius, auto-eligibility, and estimated impact, plus the sessionId + recommendationId needed for approve_recommendation. Optionally scope to one campaign.",
+    schema: listRecommendationsSchema,
+    handler: listRecommendations,
+  },
+  {
+    name: "approve_recommendation",
+    description:
+      "Approve and execute ONE already-diagnosed optimization recommendation inside VibeAds' safety guardrails (blast-radius caps, rate limits, auto-rollback if metrics worsen). Other pending recommendations on the session stay pending — approving one never rejects or executes the rest.",
+    schema: approveRecommendationSchema,
+    handler: approveRecommendation,
+  },
+  {
+    name: "request_publish",
+    description:
+      "Start the publish flow for an EXISTING campaign (one that already has ad groups — find it with list_campaigns; a generate_strategy preview does not qualify). Publishing spends real money, so this returns a human-approval URL instead of publishing directly — SHOW the approvalUrl to the user and ask them to open it in their browser, review the budget, and approve — on approval the campaign goes LIVE immediately and can start spending its daily budget. The API key cannot approve a publish. After the user approves, poll check_approval with the returned approvalId.",
+    schema: requestPublishSchema,
+    handler: requestPublish,
+  },
+  {
+    name: "check_approval",
+    description:
+      "Check the status of a publish approval created with request_publish. Status is one of: pending, approved, rejected, expired, executing, executed, failed. While pending, remind the user to open the approval link in their browser — approval cannot happen through the API. Once executed, the campaign is live in Google Ads and serving ads immediately (it is not paused) — tell the user it is now spending, and that they can pause it from the dashboard.",
+    schema: checkApprovalSchema,
+    handler: checkApproval,
+  },
+];
 
 // ---------------------------------------------------------------------------
 // Server setup
 // ---------------------------------------------------------------------------
 
 async function main() {
-  // Validate the API key at startup — fail fast with a clear error.
-  let session: { userId: string; keyId: string };
+  // `npx @vibeads/mcp --init` prints ready-to-paste client configs, then exits.
+  // Init is a FLAG, not a second bin: a package with multiple bins makes bare
+  // `npx @vibeads/mcp` ambiguous (npm 11's npx can't decide which bin to run
+  // and errors "could not determine executable"), so the server is the SINGLE
+  // bin and init rides along here. Importing cli-init runs its banner.
+  if (process.argv.slice(2).includes("--init")) {
+    await import("./cli-init.js");
+    return;
+  }
+
+  // Every tool needs a VIBEADS_API_KEY — validate presence + format up front.
+  // The key itself is validated server-side by the gateway on every call.
   try {
-    session = await authenticate();
+    requireApiKey();
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[vibeads-mcp] Authentication failed: ${message}`);
@@ -143,10 +249,10 @@ async function main() {
     }
 
     try {
-      // Parse and validate input with the tool's Zod schema
+      // Parse and validate input with the tool's Zod schema, then dispatch
+      // to the gateway — the API key is the auth, scoping happens server-side
       const parsed = tool.schema.parse(request.params.arguments ?? {});
-      // All tools receive (input, userId) so they can scope queries correctly
-      const result = await tool.handler(parsed as any, session.userId);
+      const result = await tool.handler(parsed);
 
       return {
         content: [
@@ -171,7 +277,7 @@ async function main() {
 
   // Log startup to stderr (stdout is reserved for MCP protocol messages)
   console.error(
-    `[vibeads-mcp] Server started v${SERVER_VERSION} — ${TOOLS.length} tools registered, authenticated as user ${session.userId.slice(0, 8)}...`,
+    `[vibeads-mcp] Server started v${SERVER_VERSION} — ${TOOLS.length} tools registered (gateway auth via VIBEADS_API_KEY)`,
   );
 }
 

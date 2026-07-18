@@ -2,9 +2,9 @@
  * Minimal Zod → JSON Schema converter for MCP tool inputSchema.
  *
  * We only support the Zod features our tools actually use (string, number,
- * boolean, enum, object, optional, default, describe). A full conversion
- * library like `zod-to-json-schema` would pull in more weight than we need
- * for 5 tools with simple shapes.
+ * boolean, enum, object, array, optional, default, describe). A full
+ * conversion library like `zod-to-json-schema` would pull in more weight
+ * than we need for a handful of tools with simple shapes.
  */
 
 import { z, type ZodTypeAny } from "zod";
@@ -20,12 +20,21 @@ function convert(schema: ZodTypeAny): JsonSchema {
   if (schema instanceof z.ZodDefault) {
     const inner = convert(schema._def.innerType);
     inner.default = schema._def.defaultValue();
+    // .describe() called after .default() lands on this wrapper — keep it
+    if (schema.description && !inner.description) {
+      inner.description = schema.description;
+    }
     return inner;
   }
 
   // Unwrap ZodOptional
   if (schema instanceof z.ZodOptional) {
-    return convert(schema._def.innerType);
+    const inner = convert(schema._def.innerType);
+    // .describe() called after .optional() lands on this wrapper — keep it
+    if (schema.description && !inner.description) {
+      inner.description = schema.description;
+    }
+    return inner;
   }
 
   if (schema instanceof z.ZodString) {
@@ -50,6 +59,15 @@ function convert(schema: ZodTypeAny): JsonSchema {
     const base: JsonSchema = {
       type: "string",
       enum: schema._def.values,
+    };
+    if (schema.description) base.description = schema.description;
+    return base;
+  }
+
+  if (schema instanceof z.ZodArray) {
+    const base: JsonSchema = {
+      type: "array",
+      items: convert(schema._def.type),
     };
     if (schema.description) base.description = schema.description;
     return base;
