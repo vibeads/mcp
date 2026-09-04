@@ -23,6 +23,7 @@
  * Write/workflow tools (Pro/Max):
  *   - generate_strategy        — draft a campaign strategy (nothing published)
  *   - get_strategy_status      — poll a strategy generation job
+ *   - apply_strategy           — turn a finished preview into a draft campaign
  *   - list_recommendations     — pending optimizations awaiting approval
  *   - approve_recommendation   — execute ONE recommendation inside guardrails
  *   - request_publish          — start publish flow (human-approval link)
@@ -73,6 +74,10 @@ import {
   getStrategyStatusSchema,
 } from "./tools/get-strategy-status.js";
 import {
+  applyStrategy,
+  applyStrategySchema,
+} from "./tools/apply-strategy.js";
+import {
   listRecommendations,
   listRecommendationsSchema,
 } from "./tools/list-recommendations.js";
@@ -89,7 +94,7 @@ import {
   checkApprovalSchema,
 } from "./tools/check-approval.js";
 
-const SERVER_VERSION = "0.2.5";
+const SERVER_VERSION = "0.2.6";
 const SERVER_NAME = "vibeads-mcp";
 
 // ---------------------------------------------------------------------------
@@ -153,16 +158,23 @@ const TOOLS: readonly ToolDef[] = [
   {
     name: "generate_strategy",
     description:
-      "Preview a DRAFT campaign strategy server-side: keywords, ad copy, and 3+ ad groups tailored to a service category, budget, and locations. Costs 13 VibeAds credits. Returns a jobId — poll get_strategy_status with that jobId. IMPORTANT: this is a preview only. It does NOT create a publishable campaign, so request_publish cannot act on it; the user applies the draft at https://getvibeads.com/app/new-campaign to turn it into a real campaign. Nothing is published and no ad money is spent.",
+      "Preview a DRAFT campaign strategy server-side: keywords, ad copy, and 3+ ad groups tailored to a service category, budget, and locations. Costs 13 VibeAds credits. Returns a jobId — poll get_strategy_status with that jobId, then call apply_strategy with the same jobId to turn the finished preview into a real draft campaign. This step is a preview only: it creates no campaign, publishes nothing, and spends no ad money.",
     schema: generateStrategySchema,
     handler: generateStrategy,
   },
   {
     name: "get_strategy_status",
     description:
-      "Poll the status of a strategy generation job started with generate_strategy. Returns status and phase while running, and the drafted ad groups (with keyword and headline counts) once complete. Poll every 10-15 seconds until status is completed or failed. The finished draft is a preview: show it to the user and point them to https://getvibeads.com/app/new-campaign to apply it as a real campaign — request_publish cannot publish a preview.",
+      "Poll the status of a strategy generation job started with generate_strategy. Returns status and phase while running, and the drafted ad groups (with keyword and headline counts) once complete. Poll every 10-15 seconds until status is completed or failed. Once completed, show the draft to the user and call apply_strategy with the same jobId to create the real draft campaign — request_publish cannot act on a preview.",
     schema: getStrategyStatusSchema,
     handler: getStrategyStatus,
+  },
+  {
+    name: "apply_strategy",
+    description:
+      "Turn a COMPLETED generate_strategy preview into a real draft campaign, creating the campaign plus its ad groups, keywords, targeting, ad copy and extensions. Call this after get_strategy_status reports status 'completed', passing the same jobId. This is the required step between generating a strategy and publishing it: request_publish needs a campaignId, which only exists once the strategy is applied. Costs 6 VibeAds credits plus 3 per ad group for image generation. Creates rows only — the campaign is a DRAFT, is not live, and spends no ad money. Each preview can be applied once. A second call with the same jobId does NOT succeed: it fails with an error naming the campaignId that preview already created — pass that campaignId to request_publish rather than calling generate_strategy again.",
+    schema: applyStrategySchema,
+    handler: applyStrategy,
   },
   {
     name: "list_recommendations",
@@ -181,7 +193,7 @@ const TOOLS: readonly ToolDef[] = [
   {
     name: "request_publish",
     description:
-      "Start the publish flow for an EXISTING campaign (one that already has ad groups — find it with list_campaigns; a generate_strategy preview does not qualify). Publishing spends real money, so this returns a human-approval URL instead of publishing directly — SHOW the approvalUrl to the user and ask them to open it in their browser, review the budget, and approve — on approval the campaign goes LIVE immediately and can start spending its daily budget. The API key cannot approve a publish. After the user approves, poll check_approval with the returned approvalId.",
+      "Start the publish flow for a campaign that already has ad groups — find it with list_campaigns, or create one from a finished preview with apply_strategy (a bare generate_strategy jobId does not qualify). Publishing spends real money, so this returns a human-approval URL instead of publishing directly — SHOW the approvalUrl to the user and ask them to open it in their browser, review the budget, and approve — on approval the campaign goes LIVE immediately and can start spending its daily budget. The API key cannot approve a publish. After the user approves, poll check_approval with the returned approvalId.",
     schema: requestPublishSchema,
     handler: requestPublish,
   },

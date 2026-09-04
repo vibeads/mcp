@@ -58,7 +58,7 @@ export async function getStrategyStatus(
   lines.push("");
   if (["completed", "complete", "done", "ready"].includes(status)) {
     lines.push(
-      "The draft is ready. The user can review it in the VibeAds dashboard (https://getvibeads.com/app/strategy). When they want to take it live, use `request_publish` — publishing always requires the user's approval in the browser.",
+      "The draft is ready. Show it to the user, then call `apply_strategy` with this jobId to create the real draft campaign. After that, `request_publish` returns a link the user must open and approve — publishing always requires their approval in the browser.",
     );
   } else if (["failed", "error"].includes(status)) {
     lines.push(

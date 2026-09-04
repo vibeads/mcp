@@ -112,7 +112,7 @@ function printExamplePrompts() {
 function printFooter() {
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("  Questions? Reach us at hello@getvibeads.com");
-  console.log("  Docs: https://getvibeads.com/docs/mcp");
+  console.log("  Docs: https://getvibeads.com/docs");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log();
 }

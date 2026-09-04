@@ -1,6 +1,6 @@
 {
   "name": "@vibeads/mcp",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "mcpName": "io.github.vibeads/mcp",
   "description": "Official VibeAds MCP server \u2014 talk to your Google Ads account from Claude Desktop, Cursor, or any MCP-compatible client. Built for local service businesses (plumbers, HVAC, electricians, roofers, and 33 more categories).",
   "keywords": [
@@ -36,7 +36,8 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo",
     "start": "node dist/index.js",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

@@ -158,17 +158,22 @@ Write tools talk to the secure server-side VibeAds gateway and need **only `VIBE
 |---|---|
 | `generate_strategy` | Draft a full campaign strategy (keywords, ad copy, 3+ ad groups) server-side. Costs 13 credits. Draft only — nothing is published, no money is spent |
 | `get_strategy_status` | Poll a strategy job: status, phase, and drafted ad groups once complete |
+| `apply_strategy` | Turn a completed preview into a real draft campaign (ad groups, keywords, targeting, ad copy, extensions). Costs 6 credits + 3 per ad group for image generation. Draft only — not live, no ad money spent |
 | `list_recommendations` | Pending optimization recommendations awaiting approval, with the session + recommendation IDs |
 | `approve_recommendation` | Execute ONE diagnosed optimization inside the safety guardrails; sibling recommendations stay pending |
-| `request_publish` | Start the publish flow — returns a human-approval URL because publishing spends real money |
+| `request_publish` | Start the publish flow for a campaign that has ad groups — returns a human-approval URL because publishing spends real money |
 | `check_approval` | Poll a publish approval: pending → approved → executing → executed (or rejected / expired / failed) |
 
-**The approval-link flow:**
+**From idea to live campaign:**
 
-1. The agent calls `request_publish` and shows you an approval link.
-2. You open the link in your browser and log in to VibeAds.
-3. You review the campaign + budget and click Approve (or Reject).
-4. The agent polls `check_approval` and continues once the campaign is live.
+1. `generate_strategy` drafts the strategy server-side and returns a `jobId`. Nothing exists in Google Ads yet.
+2. `get_strategy_status` polls that job until it reports `completed`.
+3. `apply_strategy` turns the finished preview into a real **draft** campaign and returns a `campaignId`. Still not live, still spending nothing.
+4. `request_publish` takes that `campaignId` and returns an approval link.
+5. You open the link in your browser, review the campaign + budget, and click Approve (or Reject).
+6. `check_approval` polls until the campaign is live.
+
+Steps 1–3 create rows only in VibeAds and spend VibeAds credits (13 for step 1; 6 + 3 per ad group for step 3). Step 5 is the only point where **ad** money is committed, and it can only happen in a browser — the API key alone can never publish.
 
 ---
 
