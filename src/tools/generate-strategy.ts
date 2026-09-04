@@ -19,7 +19,10 @@ export const generateStrategySchema = z.object({
   category: z
     .string()
     .describe(
-      'Service category, e.g. "plumber", "hvac", "electrician", "roofer". Custom categories are accepted.',
+      'Service category. Use one of these exact values to get VibeAds\' tuned keyword seeds, CPC benchmarks, audience segments and funnel template. ' +
+      'Local & home services: plumber, hvac, electrician, roofer, cleaner, landscaper, pest_control, painter, handyman, locksmith, garage_door, appliance_repair, tree_service, fencing, window_door, carpet_flooring, waterproofing, pressure_washing, pool_services, junk_removal, moving, auto_repair, christmas_lighting, dentist, lawyer. ' +
+      'Professional & lead-gen: real_estate, insurance, financial_services, education, healthcare_provider, consulting, saas, b2b_services. ' +
+      'Any other string is accepted but falls back to generic defaults — prefer the closest value above.',
     ),
   budget: z
     .number()

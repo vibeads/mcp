@@ -6,7 +6,7 @@
 
 > **Talk to your Google Ads account from Claude Desktop, Cursor, or any MCP client.**
 >
-> Built for local service businesses — plumbers, HVAC, electricians, roofers, and 33 more categories.
+> Built for local service businesses — 33 categories with tuned keywords, CPC benchmarks and funnel templates.
 
 The official [Model Context Protocol](https://modelcontextprotocol.io) server for [VibeAds](https://getvibeads.com). Ask Claude questions like "which search terms are wasting my budget?" or "what's my account health score?" and get answers pulled from your live campaign data.
 
@@ -16,13 +16,23 @@ Unlike generic Google Ads MCP servers, this one is pre-tuned for **local service
 
 ## Features
 
-- 🎯 **Local-service-first** — tuned for plumbers, HVAC, electricians, and 34 more categories
+- 🎯 **Local-service-first** — 25 home-service verticals plus 8 professional/lead-gen ones, each with its own keyword seeds, CPC benchmarks, audience segments and funnel template
 - 📊 **Account Health Score 0-100** — weighted across 6 dimensions (Tracking, Keywords, Budget, Creative, Targeting, Performance)
 - 🔍 **Search term waste detection** — finds every dollar burning on zero-conversion terms
 - 💡 **Diagnostic rollup** — 35+ rules from VibeAds' optimization engine, ranked by severity
 - ✍️ **Write tools (Pro/Max)** — draft strategies, approve optimizations, and start publish flows through the VibeAds gateway
 - 🔒 **Safe by design** — read tools can't modify anything; write tools run inside VibeAds' safety guardrails, and publishing always requires a human to approve in the browser
 - ⚡ **No GAQL required** — ask questions in natural language, get markdown answers
+
+---
+
+## Supported categories
+
+**Local & home services (25):** plumber · HVAC · electrician · roofer · cleaner · landscaper · pest control · painter · handyman · locksmith · garage door · appliance repair · tree service · fencing · windows & doors · carpet & flooring · waterproofing · pressure washing · pool services · junk removal · movers · auto repair · Christmas lighting · dentist · lawyer
+
+**Professional & lead-gen (8):** real estate · insurance · financial services · education · healthcare · consulting · SaaS · B2B services
+
+Any other category is accepted — it just falls back to generic defaults instead of the tuned knowledge base.
 
 ---
 
