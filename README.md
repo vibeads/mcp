@@ -6,7 +6,7 @@
 
 > **Talk to your Google Ads account from Claude Desktop, Cursor, or any MCP client.**
 >
-> Built for local service businesses — 33 categories with tuned keywords, CPC benchmarks and funnel templates.
+> Built for local service businesses — 34 categories with tuned keywords, CPC benchmarks and funnel templates.
 
 The official [Model Context Protocol](https://modelcontextprotocol.io) server for [VibeAds](https://getvibeads.com). Ask Claude questions like "which search terms are wasting my budget?" or "what's my account health score?" and get answers pulled from your live campaign data.
 
@@ -16,7 +16,7 @@ Unlike generic Google Ads MCP servers, this one is pre-tuned for **local service
 
 ## Features
 
-- 🎯 **Local-service-first** — 25 home-service verticals plus 8 professional/lead-gen ones, each with its own keyword seeds, CPC benchmarks, audience segments and funnel template
+- 🎯 **Local-service-first** — 26 home-service verticals plus 8 professional/lead-gen ones, each with its own keyword seeds, CPC benchmarks, audience segments and funnel template
 - 📊 **Account Health Score 0-100** — weighted across 6 dimensions (Tracking, Keywords, Budget, Creative, Targeting, Performance)
 - 🔍 **Search term waste detection** — finds every dollar burning on zero-conversion terms
 - 💡 **Diagnostic rollup** — 35+ rules from VibeAds' optimization engine, ranked by severity
@@ -28,7 +28,7 @@ Unlike generic Google Ads MCP servers, this one is pre-tuned for **local service
 
 ## Supported categories
 
-**Local & home services (25):** plumber · HVAC · electrician · roofer · cleaner · landscaper · pest control · painter · handyman · locksmith · garage door · appliance repair · tree service · fencing · windows & doors · carpet & flooring · waterproofing · pressure washing · pool services · junk removal · movers · auto repair · Christmas lighting · dentist · lawyer
+**Local & home services (26):** plumber · HVAC · electrician · roofer · cleaner · landscaper · pest control · painter · handyman · locksmith · garage door · appliance repair · tree service · fencing · windows & doors · carpet & flooring · waterproofing · pressure washing · air duct & dryer vent cleaning · pool services · junk removal · movers · auto repair · Christmas lighting · dentist · lawyer
 
 **Professional & lead-gen (8):** real estate · insurance · financial services · education · healthcare · consulting · SaaS · B2B services
 
