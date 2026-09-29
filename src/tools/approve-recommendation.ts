@@ -2,9 +2,9 @@
  * Tool: approve_recommendation
  *
  * Approves and executes ONE already-diagnosed optimization
- * recommendation inside VibeAds' safety guardrails (blast-radius caps,
- * per-campaign rate limits, automatic rollback if metrics worsen).
- * Other pending recommendations on the same session stay pending.
+ * recommendation through the dashboard's approval path. The approval is
+ * the decision for the whole session: the other recommendations in it are
+ * recorded as rejected.
  *
  * Example prompt: "Approve the negative-keyword recommendation on my
  * plumber campaign"
@@ -48,6 +48,6 @@ export async function approveRecommendation(
     JSON.stringify(data, null, 2),
     "```",
     "",
-    "The change ran inside VibeAds' safety guardrails: if key metrics worsen, it auto-rolls back within the measurement window. Other pending recommendations on this session remain pending.",
+    "Any other recommendations in this session were recorded as rejected and can no longer be approved. Changes classified surgical or meaningful are measured and rolled back automatically if key metrics worsen.",
   ].join("\n");
 }

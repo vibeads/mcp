@@ -16,7 +16,7 @@ export const requestPublishSchema = z.object({
   campaignId: z
     .string()
     .describe(
-      "The VibeAds campaign ID to publish to Google Ads (from list_campaigns, or from apply_strategy). A generate_strategy jobId is NOT a campaign ID — apply the strategy first.",
+      "The full campaign UUID from list_campaigns or apply_strategy. A short prefix is not accepted. A generate_strategy jobId is NOT a campaign ID — apply the strategy first.",
     ),
 });
 

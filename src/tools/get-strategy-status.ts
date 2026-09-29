@@ -65,7 +65,9 @@ export async function getStrategyStatus(
       "Generation failed. Check the error above, then retry with `generate_strategy` if appropriate.",
     );
   } else {
-    lines.push("Still working — poll `get_strategy_status` again in 10-15 seconds.");
+    lines.push(
+      "Still working. Generation usually takes a few minutes, and each check counts toward the key's 60-calls-per-hour limit.",
+    );
   }
 
   return lines.join("\n");

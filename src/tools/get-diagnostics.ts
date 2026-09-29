@@ -16,7 +16,9 @@ export const getDiagnosticsSchema = z.object({
   campaign_id: z
     .string()
     .optional()
-    .describe("Optional: scope to a specific campaign. Otherwise returns diagnostics across all campaigns."),
+    .describe(
+      "Optional: the campaign's full UUID from list_campaigns, or a unique prefix of it. Otherwise returns diagnostics across all campaigns.",
+    ),
   severity: z
     .enum(["critical", "high", "medium", "low", "all"])
     .optional()

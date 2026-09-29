@@ -15,6 +15,50 @@
 import { z } from "zod";
 import { callGateway } from "../gateway.js";
 
+/**
+ * Contact details of the business being advertised, also accepted by
+ * apply_strategy. They must be declared: the server parses arguments with
+ * these schemas, and zod drops any key a schema does not name.
+ */
+export const businessContactFields = {
+  businessName: z
+    .string()
+    .optional()
+    .describe(
+      "Name of the business being advertised. Omit it to advertise the business on this VibeAds account. Naming a different business than the account profile's switches off every profile fallback (phone, address, city, state, ZIP, website): businessPhone becomes required, and the call fails with missing_business_phone without it.",
+    ),
+  businessPhone: z
+    .string()
+    .optional()
+    .describe(
+      "Phone number of the business being advertised. It is shown on the landing page and used for call extensions. Required when businessName names a different business than the account's.",
+    ),
+  businessAddress: z
+    .string()
+    .optional()
+    .describe(
+      "Street address of the business being advertised. Only needed when it differs from the account profile.",
+    ),
+  businessCity: z
+    .string()
+    .optional()
+    .describe(
+      "City of the business being advertised. For a different business than the account's, it is also the fallback target location when locations is omitted.",
+    ),
+  businessState: z
+    .string()
+    .optional()
+    .describe(
+      "State of the business being advertised. For a different business than the account's, it is the preferred fallback target location when locations is omitted.",
+    ),
+  businessZip: z
+    .string()
+    .optional()
+    .describe(
+      "ZIP code of the business being advertised. Only needed when it differs from the account profile.",
+    ),
+};
+
 export const generateStrategySchema = z.object({
   category: z
     .string()
@@ -42,12 +86,14 @@ export const generateStrategySchema = z.object({
     )
     .optional()
     .describe(
-      "Target locations for the campaign. Omit to let the server infer from the account's business profile.",
+      "Target locations for the campaign. Omit to target the advertised business's state (or city): the account profile's, or businessState/businessCity when businessName names a different business.",
     ),
-  businessName: z
-    .string()
-    .optional()
-    .describe("Business name to use in ad copy and branding."),
+  ...businessContactFields,
+  // generate_strategy also targets locations, so its businessName says what a
+  // different business needs for them; apply_strategy takes no locations.
+  businessName: businessContactFields.businessName.describe(
+    "Name of the business being advertised. Omit it to advertise the business on this VibeAds account. Naming a different business than the account profile's switches off every profile fallback (phone, address, city, state, ZIP, website): businessPhone becomes required, and the call fails with missing_business_phone without it. locations, or businessState/businessCity, must then be given too.",
+  ),
 });
 
 export type GenerateStrategyInput = z.infer<typeof generateStrategySchema>;

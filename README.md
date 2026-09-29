@@ -155,14 +155,14 @@ Once configured, you can ask Claude questions like:
 | `list_campaigns` | Enumerate all campaigns with status, budget, category |
 | `get_campaign_details` | Deep dive on one campaign: metrics, ad groups, targeting, landing pages, diagnostics |
 | `get_account_health_score` | 0-100 score + letter grade across 6 dimensions, optionally per-campaign |
-| `get_search_term_analysis` | Wasted spend + winners from search terms report (configurable lookback + threshold) |
-| `get_diagnostics` | Full list of active agent-optimize diagnostics with severity + recommended fix |
+| `get_search_term_analysis` | Wasted spend + winners from each campaign's latest synced search terms, which cover the 7 days before that sync (configurable cost threshold) |
+| `get_diagnostics` | Latest agent-optimize diagnostics with severity + recommended fix (up to 50) |
 
 The read tools are **read-only** — they cannot create, modify, pause, or delete anything in your Google Ads account. They run server-side through the VibeAds gateway and need only `VIBEADS_API_KEY`. Read tools work on any plan, free tier included.
 
 ### Write tools (Pro/Max)
 
-Write tools talk to the secure server-side VibeAds gateway and need **only `VIBEADS_API_KEY`** — no Supabase keys. Every action runs inside VibeAds' safety guardrails (blast-radius caps, rate limits, auto-rollback if metrics worsen), and **publishing always requires a human approving in the browser** — the API key alone can never spend money.
+Write tools talk to the secure server-side VibeAds gateway and need **only `VIBEADS_API_KEY`** — no Supabase keys. Every call is rate-limited per key, approved optimizations are measured afterwards (smaller changes roll back automatically if metrics worsen), and **publishing always requires a human approving in the browser**. The API key alone can never spend money.
 
 | Tool | Purpose |
 |---|---|
@@ -170,7 +170,7 @@ Write tools talk to the secure server-side VibeAds gateway and need **only `VIBE
 | `get_strategy_status` | Poll a strategy job: status, phase, and drafted ad groups once complete |
 | `apply_strategy` | Turn a completed preview into a real draft campaign (ad groups, keywords, targeting, ad copy, extensions). Costs 6 credits + 3 per ad group for image generation. Draft only — not live, no ad money spent |
 | `list_recommendations` | Pending optimization recommendations awaiting approval, with the session + recommendation IDs |
-| `approve_recommendation` | Execute ONE diagnosed optimization inside the safety guardrails; sibling recommendations stay pending |
+| `approve_recommendation` | Execute ONE diagnosed optimization. Approving closes its session and rejects the other recommendations in it |
 | `request_publish` | Start the publish flow for a campaign that has ad groups — returns a human-approval URL because publishing spends real money |
 | `check_approval` | Poll a publish approval: pending → approved → executing → executed (or rejected / expired / failed) |
 
@@ -181,7 +181,7 @@ Write tools talk to the secure server-side VibeAds gateway and need **only `VIBE
 3. `apply_strategy` turns the finished preview into a real **draft** campaign and returns a `campaignId`. Still not live, still spending nothing.
 4. `request_publish` takes that `campaignId` and returns an approval link.
 5. You open the link in your browser, review the campaign + budget, and click Approve (or Reject).
-6. `check_approval` polls until the campaign is live.
+6. `check_approval` reports the approval and then the publish job; the campaign is live once that job completes.
 
 Steps 1–3 create rows only in VibeAds and spend VibeAds credits (13 for step 1; 6 + 3 per ad group for step 3). Step 5 is the only point where **ad** money is committed, and it can only happen in a browser — the API key alone can never publish.
 
@@ -190,7 +190,7 @@ Steps 1–3 create rows only in VibeAds and spend VibeAds credits (13 for step 1
 ## Security
 
 - **Read tools are read-only.** They cannot mutate your campaigns, your Google Ads account, or your VibeAds settings.
-- **Write tools are guarded.** Every write action runs server-side inside VibeAds' safety guardrails (blast-radius caps, rate limits, automatic rollback), and publishing always requires a human approving in the browser — the API key can never approve ad spend by itself.
+- **Write tools are guarded.** Every write action runs server-side through the VibeAds gateway, rate-limited per key. Approved optimizations are measured afterwards, smaller changes roll back automatically if metrics worsen, and publishing always requires a human approving in the browser. The API key can never approve ad spend by itself.
 - **Keys are hashed** with SHA-256 before storage. The full key is only shown once at creation.
 - **Revocable any time** from `https://getvibeads.com/app/settings/mcp`.
 - **Usage is logged** per-key: last-used timestamp and request count.
@@ -239,9 +239,9 @@ The three can coexist — install whichever ones fit your workflow.
 - Generate a new key at https://getvibeads.com/app/settings/mcp
 - Check that the key hasn't been revoked or expired
 
-### "No diagnostic data yet"
+### "No optimizer diagnoses yet"
 
-Diagnostics are generated every 6 hours by the VibeAds agent. If you just published a campaign, wait 6-12 hours for the first run.
+Diagnostics are generated every 12 hours by the VibeAds agent, once Google Ads performance has synced. If you just published a campaign, allow up to a day for the first run.
 
 ### "No search term data found"
 

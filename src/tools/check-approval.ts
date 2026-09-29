@@ -32,17 +32,23 @@ interface CheckApprovalResult {
   status: ApprovalStatus;
   result?: unknown;
   error?: string;
+  /** Present once executed: the publish job the approval started. */
+  publishJob?: {
+    status: string;
+    step?: string | null;
+    error?: string | null;
+  };
 }
 
 const STATUS_GUIDANCE: Record<ApprovalStatus, string> = {
   pending:
     "⏳ Waiting on the user. Remind them to open the approval link from `request_publish` in their browser, review the budget, and approve — approval cannot happen through the API.",
   approved:
-    "👍 Approved by the user. Execution should start shortly — poll `check_approval` again in a few seconds.",
+    "👍 Approved by the user. Execution should start shortly. Check again in a minute; each check counts toward the key's 60-calls-per-hour limit.",
   executing:
-    "🚀 Publishing to Google Ads right now. Poll `check_approval` again in 10-15 seconds.",
+    "🚀 Publishing to Google Ads right now. Check again in a minute or two; each check counts toward the key's 60-calls-per-hour limit.",
   executed:
-    "✅ Published. The campaign is live in Google Ads (it may take a few minutes to start serving).",
+    "✅ Approved and handed to the publisher. The campaign is live only once publishJob.status below is completed.",
   rejected:
     "🚫 The user rejected this publish request. Do not retry unless the user asks — discuss what they would like to change instead.",
   expired:
@@ -66,6 +72,16 @@ export async function checkApproval(
 
   if (data.error) {
     lines.push("", `**Error:** ${data.error}`);
+  }
+
+  if (data.publishJob) {
+    lines.push("", `- **publishJob.status:** ${data.publishJob.status}`);
+    if (data.publishJob.step) {
+      lines.push(`- **publishJob.step:** ${data.publishJob.step}`);
+    }
+    if (data.publishJob.error) {
+      lines.push(`- **publishJob.error:** ${data.publishJob.error}`);
+    }
   }
 
   if (data.result !== undefined && data.result !== null) {

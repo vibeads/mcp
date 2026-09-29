@@ -16,7 +16,7 @@ export const listRecommendationsSchema = z.object({
     .string()
     .optional()
     .describe(
-      "Optional: scope to a single campaign. Otherwise returns pending recommendations across all campaigns.",
+      "Optional: the full campaign UUID from list_campaigns or apply_strategy (a short prefix is not accepted). Otherwise returns pending recommendations across all campaigns.",
     ),
 });
 
@@ -95,7 +95,7 @@ export async function listRecommendations(
   }
 
   lines.push(
-    "To execute one, call `approve_recommendation` with its sessionId and recommendationId. Approving one recommendation leaves the others pending.",
+    "To execute one, call `approve_recommendation` with its sessionId and recommendationId. Approving one closes its session and rejects the rest of that session.",
   );
 
   return lines.join("\n");

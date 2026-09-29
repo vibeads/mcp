@@ -15,7 +15,7 @@ export const getCampaignDetailsSchema = z.object({
   campaign_id: z
     .string()
     .describe(
-      'The VibeAds campaign UUID. Can be the full UUID or the short 8-character prefix shown in list_campaigns (e.g. "a1b2c3d4").',
+      "The campaign's full UUID from list_campaigns, or a unique prefix of it.",
     ),
 });
 

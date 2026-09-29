@@ -28,7 +28,7 @@ export const getAccountHealthScoreSchema = z.object({
     .string()
     .optional()
     .describe(
-      "Optional: scope the health score to a single campaign. If omitted, returns account-level score across all campaigns.",
+      "Optional: the campaign's full UUID from list_campaigns, or a unique prefix of it, to score one campaign. If omitted, returns the account-level score across all campaigns.",
     ),
 });
 

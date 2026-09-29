@@ -16,6 +16,7 @@
 
 import { z } from "zod";
 import { callGateway } from "../gateway.js";
+import { businessContactFields } from "./generate-strategy.js";
 
 export const applyStrategySchema = z.object({
   jobId: z
@@ -29,6 +30,7 @@ export const applyStrategySchema = z.object({
     .describe(
       'Optional name for the draft campaign. Defaults to "<category> Campaign".',
     ),
+  ...businessContactFields,
 });
 
 export type ApplyStrategyInput = z.infer<typeof applyStrategySchema>;
@@ -48,9 +50,11 @@ export async function applyStrategy(
   // the cases worth surfacing verbatim: job_not_completed (still generating),
   // already_applied (this preview built a campaign already), and
   // invalid_strategy (no ad groups). Don't paraphrase them.
+  const { jobId, campaignName, ...contact } = input;
   const data = await callGateway<ApplyStrategyResult>("apply_strategy", {
-    jobId: input.jobId,
-    ...(input.campaignName ? { campaignName: input.campaignName } : {}),
+    jobId,
+    ...(campaignName ? { campaignName } : {}),
+    ...contact,
   });
 
   const lines: string[] = [

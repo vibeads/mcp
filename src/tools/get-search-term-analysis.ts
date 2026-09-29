@@ -24,13 +24,17 @@ export const getSearchTermAnalysisSchema = z.object({
     .max(90)
     .optional()
     .default(30)
-    .describe("How many days of search term data to analyze (max 90)."),
+    .describe(
+      "How recent the latest sync must be, in days (default 30, max 90). The terms always cover the 7 days before that sync.",
+    ),
   min_cost: z
     .number()
     .positive()
     .optional()
     .default(10)
-    .describe("Minimum USD cost threshold for a term to be considered 'wasted'. Defaults to $10."),
+    .describe(
+      "Minimum USD cost over those 7 days for a zero-conversion term to count as wasted. Defaults to $10.",
+    ),
 });
 
 export type GetSearchTermAnalysisInput = z.infer<typeof getSearchTermAnalysisSchema>;
