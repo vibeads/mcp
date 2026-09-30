@@ -50,9 +50,9 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 import { requireApiKey } from "./gateway.js";
-import { TOOLS, listedTools } from "./catalog.js";
+import { SERVER_INSTRUCTIONS, TOOLS, listedTools } from "./catalog.js";
 
-const SERVER_VERSION = "0.2.8";
+const SERVER_VERSION = "0.2.9";
 const SERVER_NAME = "vibeads-mcp";
 
 // ---------------------------------------------------------------------------
@@ -85,7 +85,7 @@ async function main() {
 
   const server = new Server(
     { name: SERVER_NAME, version: SERVER_VERSION },
-    { capabilities: { tools: {} } },
+    { capabilities: { tools: {} }, instructions: SERVER_INSTRUCTIONS },
   );
 
   // Register tool list handler
