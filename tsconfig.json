@@ -1,13 +1,27 @@
 {
-  "extends": "../../tsconfig.base.json",
+  // Self-contained on purpose: github.com/vibeads/mcp is this folder alone,
+  // so extending the monorepo's tsconfig.base.json broke every build there.
+  // These are the options that base gave this package, minus the workspace
+  // path aliases it never used. test/standalone-build.test.mjs builds a copy
+  // of the package outside the monorepo to keep it that way.
   "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "declaration": true,
+    "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "target": "ES2022",
-    "composite": false
+    "lib": ["ES2022"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "composite": false,
+    "outDir": "./dist",
+    "rootDir": "./src"
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }
