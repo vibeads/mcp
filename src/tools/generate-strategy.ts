@@ -37,7 +37,7 @@ export const businessContactFields = {
     .string()
     .optional()
     .describe(
-      "Street address of the business being advertised. Only needed when it differs from the account profile.",
+      "Street address of the business being advertised, as shown on its landing page. Only needed when it differs from the account profile.",
     ),
   businessCity: z
     .string()
@@ -77,7 +77,9 @@ export const generateStrategySchema = z.object({
   locations: z
     .array(
       z.object({
-        name: z.string().describe('Location name, e.g. "Austin, TX".'),
+        name: z
+          .string()
+          .describe('A city, county, state or ZIP code the business serves, e.g. "Austin, TX".'),
         geoTargetConstant: z
           .string()
           .optional()
@@ -86,7 +88,7 @@ export const generateStrategySchema = z.object({
     )
     .optional()
     .describe(
-      "Target locations for the campaign. Omit to target the advertised business's state (or city): the account profile's, or businessState/businessCity when businessName names a different business.",
+      "Where the ads should run: the areas the advertised business serves. This is the campaign's ad targeting, not the location of the person in the conversation. Omit to target the advertised business's state (or city): the account profile's, or businessState/businessCity when businessName names a different business.",
     ),
   ...businessContactFields,
   // generate_strategy also targets locations, so its businessName says what a
