@@ -92,9 +92,12 @@ export const SERVER_INSTRUCTIONS =
 /**
  * MCP tool annotations (2025-03-26 and later): hints an agent uses to decide
  * which calls need the user's say-so. Read tools only read VibeAds' own copy
- * of the account. Only approve_recommendation and add_ad_group change live
- * Google Ads campaigns, so only they are open-world. preview_ad_group writes
- * a preview inside VibeAds and nothing else. request_publish changes nothing in
+ * of the account. approve_recommendation and add_ad_group change live Google
+ * Ads campaigns, so they are open-world. generate_strategy is open-world too:
+ * it reads the public websites of the competitors the user names, a system
+ * nobody here controls (OpenAI's tool scan flagged it as closed, Oct 1 2026).
+ * preview_ad_group writes a preview inside VibeAds and nothing else.
+ * request_publish changes nothing in
  * Google Ads and spends nothing, but it is destructive too: it cancels the
  * campaign's earlier pending approval link, and the publish it asks for
  * spends money once the user approves. OpenAI's plugin guidelines allow
@@ -194,9 +197,10 @@ export const TOOLS: readonly ToolDef[] = [
   {
     name: "generate_strategy",
     title: "Draft a campaign strategy",
-    hints: CREATES_DRAFT,
+    // A draft, but it reads the websites of the competitors the user names.
+    hints: { ...CREATES_DRAFT, openWorldHint: true },
     description:
-      "Preview a DRAFT campaign strategy server-side: keywords, ad copy, and 3+ ad groups tailored to a service category, budget, and locations. Pro and Max drafts include an ad group for searches of the business's own name, and on the Max plan, competitor ad groups for up to 5 competitors named in competitors. Costs 13 VibeAds credits. Returns a jobId — poll get_strategy_status with that jobId, then call apply_strategy with the same jobId to turn the finished preview into a real draft campaign. This step is a preview only: it creates no campaign, publishes nothing, and spends no ad money. Requires a Pro or Max plan.",
+      "Preview a DRAFT campaign strategy server-side: keywords, ad copy, and 3+ ad groups tailored to a service category, budget, and locations. Pro and Max drafts include an ad group for searches of the business's own name, and on the Max plan, competitor ad groups for up to 5 competitors named in competitors; for a competitor given with its website, VibeAds reads that public website to write those ads. Costs 13 VibeAds credits. Returns a jobId. Poll get_strategy_status with that jobId, then call apply_strategy with the same jobId to turn the finished preview into a real draft campaign. This step is a preview only: it creates no campaign, publishes nothing, and spends no ad money. Requires a Pro or Max plan.",
     schema: generateStrategySchema,
     handler: generateStrategy,
   },
