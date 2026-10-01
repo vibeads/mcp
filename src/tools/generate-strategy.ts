@@ -90,6 +90,21 @@ export const generateStrategySchema = z.object({
     .describe(
       "Where the ads should run: the areas the advertised business serves. This is the campaign's ad targeting, not the location of the person in the conversation. Omit to target the advertised business's state (or city): the account profile's, or businessState/businessCity when businessName names a different business.",
     ),
+  competitors: z
+    .array(
+      z.object({
+        name: z.string().describe('A competing business\'s name, e.g. "Roto-Rooter".'),
+        website: z
+          .string()
+          .optional()
+          .describe('Its website, e.g. "rotorooter.com". VibeAds reads it to write the competitor ads.'),
+      }),
+    )
+    .max(5)
+    .optional()
+    .describe(
+      "Up to 5 competing businesses to add competitor ad groups for: ads shown on searches for those businesses. Included in the Max plan only; on other plans the draft leaves them out and the reply says so.",
+    ),
   ...businessContactFields,
   // generate_strategy also targets locations, so its businessName says what a
   // different business needs for them; apply_strategy takes no locations.
@@ -103,6 +118,8 @@ export type GenerateStrategyInput = z.infer<typeof generateStrategySchema>;
 interface GenerateStrategyResult {
   jobId: string;
   status: string;
+  /** Present when competitors were given but the plan does not include them. */
+  competitors?: string;
 }
 
 export async function generateStrategy(
@@ -128,6 +145,11 @@ export async function generateStrategy(
   if (input.locations && input.locations.length > 0) {
     lines.push(
       `- **Locations:** ${input.locations.map((l) => l.name).join(", ")}`,
+    );
+  }
+  if (input.competitors && input.competitors.length > 0) {
+    lines.push(
+      `- **Competitors:** ${data.competitors ?? input.competitors.map((c) => c.name).join(", ")}`,
     );
   }
 

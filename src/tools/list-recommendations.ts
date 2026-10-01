@@ -24,6 +24,9 @@ export type ListRecommendationsInput = z.infer<
   typeof listRecommendationsSchema
 >;
 
+/** How a recommendation can be approved from here (mcp-gateway approval-route.ts). */
+type ApprovalPath = "approve" | "approval_link" | "preview_then_add" | "not_applicable";
+
 interface PendingRecommendation {
   id: string;
   action: string;
@@ -32,7 +35,24 @@ interface PendingRecommendation {
   blastRadius: string;
   autoEligible: boolean;
   estimatedImpact?: string;
+  /** Absent from gateways older than 0.2.12. */
+  approval?: ApprovalPath;
+  budgetChange?: {
+    currentDailyBudgetUsd: number | null;
+    newDailyBudgetUsd: number | null;
+    changePct: number | null;
+  };
+  proposedAdGroupName?: string;
 }
+
+const HOW_TO_APPROVE: Record<ApprovalPath, string> = {
+  approve: "approve_recommendation applies it once the user says so",
+  approval_link:
+    "a budget increase of more than 20%: approve_recommendation returns a VibeAds link the user opens to approve it",
+  preview_then_add:
+    "a new ad group: call preview_ad_group with this sessionId and recommendationId, show the preview, then add_ad_group",
+  not_applicable: "advice to relay; nothing can be applied from here",
+};
 
 interface RecommendationSession {
   sessionId: string;
@@ -90,12 +110,25 @@ export async function listRecommendations(
       if (rec.estimatedImpact) {
         lines.push(`  - Estimated impact: ${rec.estimatedImpact}`);
       }
+      if (rec.proposedAdGroupName) {
+        lines.push(`  - New ad group: ${rec.proposedAdGroupName}`);
+      }
+      if (rec.budgetChange) {
+        const b = rec.budgetChange;
+        const now = b.currentDailyBudgetUsd === null ? "unknown" : `$${b.currentDailyBudgetUsd.toFixed(2)}`;
+        const next = b.newDailyBudgetUsd === null ? "unknown" : `$${b.newDailyBudgetUsd.toFixed(2)}`;
+        const pct = b.changePct === null ? "" : ` (${b.changePct > 0 ? "+" : ""}${b.changePct}%)`;
+        lines.push(`  - Daily budget: ${now} to ${next}${pct}`);
+      }
+      if (rec.approval) {
+        lines.push(`  - Approval: ${rec.approval} (${HOW_TO_APPROVE[rec.approval] ?? rec.approval})`);
+      }
     }
     lines.push("");
   }
 
   lines.push(
-    "To execute one, call `approve_recommendation` with its sessionId and recommendationId. Approving one closes its session and rejects the rest of that session.",
+    "Each recommendation's Approval line says how to act on it. Approving one closes its session and rejects the rest of that session.",
   );
 
   return lines.join("\n");

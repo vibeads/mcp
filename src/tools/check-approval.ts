@@ -14,7 +14,9 @@ import { callGateway } from "../gateway.js";
 export const checkApprovalSchema = z.object({
   approvalId: z
     .string()
-    .describe("The approvalId returned by request_publish."),
+    .describe(
+      "The approvalId returned by request_publish, or by approve_recommendation when it returned approvalRequired.",
+    ),
 });
 
 export type CheckApprovalInput = z.infer<typeof checkApprovalSchema>;
@@ -29,6 +31,8 @@ type ApprovalStatus =
   | "failed";
 
 interface CheckApprovalResult {
+  /** publish_campaign, register_domain or apply_recommendation. Absent from gateways older than 0.2.12. */
+  actionType?: string;
   status: ApprovalStatus;
   result?: unknown;
   error?: string;
@@ -56,6 +60,19 @@ const STATUS_GUIDANCE: Record<ApprovalStatus, string> = {
   failed: "❌ Publish execution failed. See the error details below.",
 };
 
+/** An approval link for a budget increase above the chat limit (approve_recommendation). */
+const BUDGET_GUIDANCE: Partial<Record<ApprovalStatus, string>> = {
+  pending:
+    "⏳ Waiting on the user. Remind them to open the approval link from `approve_recommendation` in their browser and approve the budget change; it cannot be approved through the API.",
+  approved: "👍 Approved by the user. The budget change runs shortly.",
+  executing: "The budget change is being made in Google Ads now. Check again in a minute.",
+  executed: "✅ Approved: the daily budget was changed in Google Ads.",
+  rejected: "🚫 The user rejected this budget change. Nothing changed.",
+  expired:
+    "⌛ This link expired before the user acted on it. Call `approve_recommendation` again for a fresh link if the recommendation is still pending.",
+  failed: "❌ The budget change did not go through. See the error below.",
+};
+
 export async function checkApproval(
   input: CheckApprovalInput,
 ): Promise<string> {
@@ -63,11 +80,13 @@ export async function checkApproval(
     approvalId: input.approvalId,
   });
 
+  const budget = data.actionType === "apply_recommendation";
   const lines: string[] = [
-    `**Publish approval** \`${input.approvalId}\``,
+    `**${budget ? "Budget change approval" : "Publish approval"}** \`${input.approvalId}\``,
     `- **Status:** ${data.status}`,
     "",
-    STATUS_GUIDANCE[data.status] ?? `Unrecognized status: ${data.status}`,
+    (budget ? BUDGET_GUIDANCE[data.status] : undefined) ??
+      STATUS_GUIDANCE[data.status] ?? `Unrecognized status: ${data.status}`,
   ];
 
   if (data.error) {

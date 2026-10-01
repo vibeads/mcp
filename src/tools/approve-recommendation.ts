@@ -41,6 +41,18 @@ export async function approveRecommendation(
     },
   );
 
+  // A budget increase above the chat limit: nothing ran; the user approves it in VibeAds.
+  if (data.approvalRequired === true) {
+    return [
+      `Recommendation \`${input.recommendationId}\` needs the user's approval in VibeAds. Nothing has changed yet.`,
+      "",
+      `- **Approval link:** ${String(data.approvalUrl)}`,
+      `- **Approval ID:** \`${String(data.approvalId)}\``,
+      "",
+      String(data.note ?? ""),
+    ].join("\n");
+  }
+
   return [
     `✅ Recommendation \`${input.recommendationId}\` approved — execution result below.`,
     "",
