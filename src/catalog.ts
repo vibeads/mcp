@@ -82,9 +82,11 @@ export const SERVER_INSTRUCTIONS =
   "or wants a new Google Ads campaign. Reading works on every plan; drafting, recommendations and " +
   "publishing need a Pro or Max plan, and each of those tools says so. To launch a campaign: " +
   "generate_strategy, then get_strategy_status until it completes, then apply_strategy, then " +
-  "request_publish. Publishing spends the advertiser's own money, so request_publish returns an " +
-  "approval link instead of publishing: always show the link to the user, who approves it in VibeAds. " +
-  "This connection cannot approve spend itself. To act on the optimizer's recommendations: list_recommendations " +
+  "request_publish. Publishing spends the advertiser's own money. If the user connected you by signing in to " +
+  "VibeAds and allows AI assistants to publish Search campaigns up to a daily budget, request_publish asks you to " +
+  "confirm the campaign's daily budget with them, then publishes it once they agree. Otherwise it returns an " +
+  "approval link: show it to the user, who approves it in VibeAds. This connection cannot approve a link itself. " +
+  "To act on the optimizer's recommendations: list_recommendations " +
   "says how each one can be approved. approve_recommendation applies a change once the user says so; a new ad " +
   "group is shown with preview_ad_group and added with add_ad_group; a budget increase of more than 20% returns " +
   "an approval link the user opens in VibeAds. The limit is 60 tool calls per hour.";
@@ -97,13 +99,15 @@ export const SERVER_INSTRUCTIONS =
  * it reads the public websites of the competitors the user names, a system
  * nobody here controls (OpenAI's tool scan flagged it as closed, Oct 1 2026).
  * preview_ad_group writes a preview inside VibeAds and nothing else.
- * request_publish changes nothing in
- * Google Ads and spends nothing, but it is destructive too: it cancels the
- * campaign's earlier pending approval link, and the publish it asks for
- * spends money once the user approves. OpenAI's plugin guidelines allow
- * destructiveHint false only for additive writes (no cancellation, revoked
- * access or irreversible transaction), and their tool scan flagged
- * request_publish when it said false (Oct 1 2026).
+ * request_publish is destructive and open-world: since Oct 3 2026 it
+ * publishes a Search campaign to Google Ads itself, for a connection the
+ * user made by signing in, when they allow assistants to publish up to a
+ * daily budget and confirm the campaign's budget, which spends their money
+ * (an API key always gets the link); otherwise it cancels the campaign's
+ * earlier pending approval link and makes a new one. OpenAI's plugin
+ * guidelines allow destructiveHint false only for additive writes (no
+ * cancellation, revoked access or irreversible transaction), and their tool
+ * scan flagged request_publish when it said false (Oct 1 2026).
  *
  * readOnlyHint, destructiveHint and openWorldHint are required on every tool,
  * read tools included: ChatGPT's plugin review refuses a tool that leaves any
@@ -263,12 +267,13 @@ export const TOOLS: readonly ToolDef[] = [
   },
   {
     name: "request_publish",
-    title: "Request publish approval",
-    // Cancels the campaign's earlier pending approval link, and what it asks
-    // for spends money once approved. It changes nothing in Google Ads itself.
-    hints: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+    title: "Publish a draft campaign",
+    // Publishes to Google Ads itself within the daily budget the user allows
+    // assistants (spending their money); otherwise it cancels the campaign's
+    // earlier pending approval link and makes a new one.
+    hints: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     description:
-      "Ask the user to approve publishing a draft campaign. This tool does not publish anything or change Google Ads: it creates an approval link on getvibeads.com that is valid for 24 hours, and cancels any earlier pending link for the same campaign. Show the approvalUrl to the user and ask them to open it in their browser, review the budget and approve. Only the user can approve; this connection cannot. Approving starts publishing the campaign to Google Ads, where it can spend its daily budget, billed to the advertiser's own Google Ads account. After the user approves, poll check_approval with the returned approvalId: it says when publishing finishes and whether the campaign is live or was left paused. The campaign must be a draft that is not yet published and has ad groups: find one with list_campaigns, or create one from a finished preview with apply_strategy (a generate_strategy jobId does not qualify). The account must have Google Ads connected. Requires a Pro or Max plan.",
+      "Publish a draft campaign to Google Ads, where it can spend its daily budget, billed to the advertiser's own Google Ads account. What happens depends on how you are connected and what the user allows in VibeAds. If the user connected you by signing in to VibeAds, allows AI assistants to publish Search campaigns up to a daily budget, and this campaign's budget is within it, the first call publishes nothing: it returns needsConfirmation with dailyBudgetUsd. Tell the user the campaign will spend up to that much a day and ask them to confirm. Only if they agree, call request_publish again with confirmedDailyBudget set to that amount: publishing starts and the reply has published true. Otherwise (a connection made with a VibeAds API key, no such allowance, a budget over it, a Display or Meta campaign, or two campaigns already published this way in the last 24 hours) it returns an approvalUrl, valid for 24 hours, with approvalReason saying why: show it to the user, who opens it in their browser, reviews the budget and approves. Only the user can approve a link; this connection cannot. A publish or a new link cancels any earlier pending link for the same campaign. Then poll check_approval with the returned approvalId: it says when publishing finishes and whether the campaign is live or was left paused. The campaign must be a draft that is not yet published and has ad groups: find one with list_campaigns, or create one from a finished preview with apply_strategy (a generate_strategy jobId does not qualify). The account must have Google Ads connected. Requires a Pro or Max plan.",
     schema: requestPublishSchema,
     handler: requestPublish,
   },
@@ -277,7 +282,7 @@ export const TOOLS: readonly ToolDef[] = [
     title: "Check an approval",
     hints: READ_ONLY,
     description:
-      "Check an approval link: one created with request_publish, or one approve_recommendation returned for a budget increase (approvalRequired). actionType says which: publish_campaign or apply_recommendation. status is one of: pending, approved, rejected, expired, executing, executed, failed. While pending, remind the user to open the approval link in their browser; approval cannot happen through the API. For apply_recommendation, executed means the daily budget was changed in Google Ads. For publish_campaign, executed means the approval went through and a publish job started, not that ads are serving: the result's publishJob.status is processing, queued, completed or failed, with the current step and any error. Once publishJob.status is completed the campaign is in Google Ads, and publishJob.campaignStatus says whether ads can show. ENABLED: it is live and can spend its daily budget; tell the user it is now live and that they can pause it from the dashboard. PAUSED: no ads are showing and nothing is being spent; relay publishJob.pausedMessage, which says why, and tell the user they can start it from the campaign page in VibeAds. If publishJob.billingMessage is present, relay it: Google Ads had no approved payment method, so no ads show and nothing is spent until one is added, and do not say the campaign is spending. If campaignStatus is absent, say the campaign is in Google Ads and check its status with list_campaigns. Requires a Pro or Max plan.",
+      "Check an approval: a link created with request_publish, a publish request_publish started itself (published true), or a link approve_recommendation returned for a budget increase (approvalRequired). actionType says which: publish_campaign or apply_recommendation. status is one of: pending, approved, rejected, expired, executing, executed, failed. While pending, remind the user to open the approval link in their browser; approval cannot happen through the API. For apply_recommendation, executed means the daily budget was changed in Google Ads. For publish_campaign, executed means a publish job started, not that ads are serving: the result's publishJob.status is processing, queued, completed or failed, with the current step and any error. Once publishJob.status is completed the campaign is in Google Ads, and publishJob.campaignStatus says whether ads can show. ENABLED: it is live and can spend its daily budget; tell the user it is now live and that they can pause it from the dashboard. PAUSED: no ads are showing and nothing is being spent; relay publishJob.pausedMessage, which says why, and tell the user they can start it from the campaign page in VibeAds. If publishJob.billingMessage is present, relay it: Google Ads had no approved payment method, so no ads show and nothing is spent until one is added, and do not say the campaign is spending. If campaignStatus is absent, say the campaign is in Google Ads and check its status with list_campaigns. Requires a Pro or Max plan.",
     schema: checkApprovalSchema,
     handler: checkApproval,
   },

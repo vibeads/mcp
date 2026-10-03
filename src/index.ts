@@ -36,7 +36,8 @@
  *                                a budget increase over 20% gets an approval link
  *   - preview_ad_group         — show a new ad group before adding it
  *   - add_ad_group             — add the previewed ad group (live on a published campaign)
- *   - request_publish          — start publish flow (human-approval link)
+ *   - request_publish          — start publish flow (human-approval link; this
+ *                                package uses an API key, which never publishes itself)
  *   - check_approval           — poll an approval link / execution
  *
  * License: MIT
@@ -55,7 +56,7 @@ import {
 import { requireApiKey } from "./gateway.js";
 import { SERVER_INSTRUCTIONS, TOOLS, listedTools } from "./catalog.js";
 
-const SERVER_VERSION = "0.2.13";
+const SERVER_VERSION = "0.2.14";
 const SERVER_NAME = "vibeads-mcp";
 
 // ---------------------------------------------------------------------------

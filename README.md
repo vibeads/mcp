@@ -10,7 +10,7 @@
 
 The official [Model Context Protocol](https://modelcontextprotocol.io) server for [VibeAds](https://getvibeads.com). Ask Claude questions like "which search terms are wasting my budget?" or "what's my account health score?" and get answers pulled from your live campaign data.
 
-Unlike generic Google Ads MCP servers, this one is pre-tuned for **local service businesses** and rolls up 35+ diagnostic rules into a single 0-100 account health score across 6 dimensions. On Pro/Max plans it can also draft campaign strategies, execute guarded optimizations, and kick off publish flows — with a human always approving anything that spends money.
+Unlike generic Google Ads MCP servers, this one is pre-tuned for **local service businesses** and rolls up 35+ diagnostic rules into a single 0-100 account health score across 6 dimensions. On Pro/Max plans it can also draft campaign strategies, execute guarded optimizations, add ad groups, and kick off publish flows, with a human always approving anything that spends money.
 
 ---
 
@@ -170,7 +170,9 @@ Write tools talk to the secure server-side VibeAds gateway and need **only `VIBE
 | `get_strategy_status` | Poll a strategy job: status, phase, and drafted ad groups once complete |
 | `apply_strategy` | Turn a completed preview into a real draft campaign (ad groups, keywords, targeting, ad copy, extensions). Costs 6 credits + 3 per ad group for image generation. Draft only — not live, no ad money spent |
 | `list_recommendations` | Pending optimization recommendations awaiting approval, with the session + recommendation IDs |
-| `approve_recommendation` | Execute ONE diagnosed optimization. Approving closes its session and rejects the other recommendations in it |
+| `approve_recommendation` | Execute ONE diagnosed optimization. Approving closes its session and rejects the other recommendations in it. A budget increase over 20% returns an approval link instead |
+| `preview_ad_group` | Show a new ad group (keywords, three ads, landing page plan) before it is added. Creates a preview only |
+| `add_ad_group` | Add a previewed ad group. On a published campaign it starts serving at once, within the campaign's budget |
 | `request_publish` | Start the publish flow for a campaign that has ad groups — returns a human-approval URL because publishing spends real money |
 | `check_approval` | Poll a publish approval: pending → approved → executing → executed (or rejected / expired / failed) |
 
@@ -184,6 +186,8 @@ Write tools talk to the secure server-side VibeAds gateway and need **only `VIBE
 6. `check_approval` reports the approval and then the publish job; the campaign is live once that job completes.
 
 Steps 1–3 create rows only in VibeAds and spend VibeAds credits (13 for step 1; 6 + 3 per ad group for step 3). Step 5 is the only point where **ad** money is committed, and it can only happen in a browser — the API key alone can never publish.
+
+Assistants you connect by signing in to VibeAds instead of with a key (such as ChatGPT or claude.ai, through the hosted server at `https://getvibeads.com/api/mcp`) can publish a Search campaign without the link when you allow it up to a daily budget, in VibeAds Settings under Connected apps. They confirm each campaign's daily budget with you first. API keys never can, so a leaked key still cannot spend.
 
 ---
 
