@@ -9,7 +9,10 @@
  * owner allows: the first call asks it to confirm the budget with the user,
  * the second, with confirmedDailyBudget, publishes. Both answers are handled
  * below, so a gateway change needs no new package. Poll check_approval
- * afterwards either way.
+ * afterwards either way. With more than one Google Ads account the gateway
+ * first answers choose_google_ads_account (an error, so its message reaches
+ * the agent as text): the agent asks the user and calls again with customerId,
+ * and the campaign is published to that account only.
  *
  * Example prompt: "Publish my Austin plumber campaign to Google Ads"
  */
@@ -22,6 +25,12 @@ export const requestPublishSchema = z.object({
     .string()
     .describe(
       "The full campaign UUID from list_campaigns or apply_strategy. A short prefix is not accepted. A generate_strategy jobId is NOT a campaign ID: apply the strategy first.",
+    ),
+  customerId: z
+    .string()
+    .optional()
+    .describe(
+      "The Google Ads account to publish to, when the user has more than one: an ID from the accounts a choose_google_ads_account answer listed, e.g. 123-456-7890. Send it on the confirming call too. Leave it out when they have one account.",
     ),
   confirmedDailyBudget: z
     .number()
@@ -74,8 +83,10 @@ export async function requestPublish(
 ): Promise<string> {
   const data = await callGateway<RequestPublishResult>("request_publish", {
     campaignId: input.campaignId,
+    ...(input.customerId !== undefined ? { customerId: input.customerId } : {}),
     ...(input.confirmedDailyBudget !== undefined ? { confirmedDailyBudget: input.confirmedDailyBudget } : {}),
   });
+  const withAccount = input.customerId !== undefined ? ` and \`customerId\` \`${input.customerId}\`` : "";
 
   if (data.needsConfirmation) {
     const daily = data.dailyBudgetUsd ?? 0;
@@ -84,7 +95,7 @@ export async function requestPublish(
       "",
       `This account lets AI assistants publish Search campaigns up to ${money(data.ceilingUsd ?? 0)} a day. Tell the user this campaign will spend up to ${money(daily)} a day, billed to their own Google Ads account, and ask them to confirm.`,
       "",
-      `If they agree, call \`request_publish\` again with \`campaignId\` \`${input.campaignId}\` and \`confirmedDailyBudget: ${daily}\`. If they do not, do not publish.`,
+      `If they agree, call \`request_publish\` again with \`campaignId\` \`${input.campaignId}\`${withAccount} and \`confirmedDailyBudget: ${daily}\`. If they do not, do not publish.`,
       ...summaryLines(data.summary),
     ].join("\n");
   }

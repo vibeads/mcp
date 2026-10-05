@@ -157,6 +157,7 @@ Once configured, you can ask Claude questions like:
 | `get_account_health_score` | 0-100 score + letter grade across 6 dimensions, optionally per-campaign |
 | `get_search_term_analysis` | Wasted spend + winners from each campaign's latest synced search terms, which cover the 7 days before that sync (configurable cost threshold) |
 | `get_diagnostics` | Latest agent-optimize diagnostics with severity + recommended fix (up to 50) |
+| `find_campaigns_to_import` | Before importing: the campaigns in your Google Ads account, read from Google Ads, each marked with whether it is in VibeAds (VibeAds manages only the campaigns in it). Called `list_google_ads_campaigns` in 0.2.15 |
 
 The read tools are **read-only** — they cannot create, modify, pause, or delete anything in your Google Ads account. They run server-side through the VibeAds gateway and need only `VIBEADS_API_KEY`. Read tools work on any plan, free tier included.
 
@@ -173,7 +174,9 @@ Write tools talk to the secure server-side VibeAds gateway and need **only `VIBE
 | `approve_recommendation` | Execute ONE diagnosed optimization. Approving closes its session and rejects the other recommendations in it. A budget increase over 20% returns an approval link instead |
 | `preview_ad_group` | Show a new ad group (keywords, three ads, landing page plan) before it is added. Creates a preview only |
 | `add_ad_group` | Add a previewed ad group. On a published campaign it starts serving at once, within the campaign's budget |
-| `request_publish` | Start the publish flow for a campaign that has ad groups — returns a human-approval URL because publishing spends real money |
+| `request_publish` | Start the publish flow for a campaign that has ad groups — returns a human-approval URL because publishing spends real money. With more than one Google Ads account it asks which one, and publishes to that one only |
+| `import_campaigns` | Bring up to 3 campaigns from your Google Ads account into VibeAds, so its optimizer and reports cover them. Nothing changes in Google Ads. 1 credit each |
+| `pause_campaign` | Pause a live campaign in Google Ads. Starting it again is done in VibeAds |
 | `check_approval` | Poll a publish approval: pending → approved → executing → executed (or rejected / expired / failed) |
 
 **From idea to live campaign:**

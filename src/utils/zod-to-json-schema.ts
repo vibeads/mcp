@@ -69,6 +69,8 @@ function convert(schema: ZodTypeAny): JsonSchema {
       type: "array",
       items: convert(schema._def.type),
     };
+    if (schema._def.minLength) base.minItems = schema._def.minLength.value;
+    if (schema._def.maxLength) base.maxItems = schema._def.maxLength.value;
     if (schema.description) base.description = schema.description;
     return base;
   }

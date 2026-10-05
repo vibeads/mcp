@@ -56,7 +56,7 @@ import {
 import { requireApiKey } from "./gateway.js";
 import { SERVER_INSTRUCTIONS, TOOLS, listedTools } from "./catalog.js";
 
-const SERVER_VERSION = "0.2.14";
+const SERVER_VERSION = "0.2.16";
 const SERVER_NAME = "vibeads-mcp";
 
 // ---------------------------------------------------------------------------
