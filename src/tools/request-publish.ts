@@ -24,19 +24,19 @@ export const requestPublishSchema = z.object({
   campaignId: z
     .string()
     .describe(
-      "The full campaign UUID from list_campaigns or apply_strategy. A short prefix is not accepted. A generate_strategy jobId is NOT a campaign ID: apply the strategy first.",
+      "The full campaign UUID from list_campaigns or apply_strategy. A short prefix is not accepted. A generate_strategy jobId is not a campaign ID; apply_strategy turns that preview into a campaign.",
     ),
   customerId: z
     .string()
     .optional()
     .describe(
-      "The Google Ads account to publish to, when the user has more than one: an ID from the accounts a choose_google_ads_account answer listed, e.g. 123-456-7890. Send it on the confirming call too. Leave it out when they have one account.",
+      "The Google Ads account to publish to, when the user has more than one: an ID from the accounts a choose_google_ads_account answer listed, e.g. 123-456-7890, on the confirming call as well. Not needed with one account.",
     ),
   confirmedDailyBudget: z
     .number()
     .optional()
     .describe(
-      "The campaign's daily budget in US dollars, exactly as the first call returned it in dailyBudgetUsd. Send it only after the user has confirmed that amount; leave it out on the first call.",
+      "The daily budget in US dollars that the user confirmed, equal to dailyBudgetUsd from the first call. A call without it publishes nothing and returns needsConfirmation.",
     ),
 });
 

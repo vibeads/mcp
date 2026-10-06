@@ -25,7 +25,7 @@ export const getSearchTermAnalysisSchema = z.object({
     .optional()
     .default(30)
     .describe(
-      "How recent the latest sync must be, in days (default 30, max 90). The terms always cover the 7 days before that sync.",
+      "How old the latest sync can be, in days (default 30, max 90). The terms cover the 7 days before that sync.",
     ),
   min_cost: z
     .number()

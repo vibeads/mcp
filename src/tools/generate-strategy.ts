@@ -109,7 +109,7 @@ export const generateStrategySchema = z.object({
   // generate_strategy also targets locations, so its businessName says what a
   // different business needs for them; apply_strategy takes no locations.
   businessName: businessContactFields.businessName.describe(
-    "Name of the business being advertised. Omit it to advertise the business on this VibeAds account. Naming a different business than the account profile's switches off every profile fallback (phone, address, city, state, ZIP, website): businessPhone becomes required, and the call fails with missing_business_phone without it. locations, or businessState/businessCity, must then be given too.",
+    "Name of the business being advertised. Omit it to advertise the business on this VibeAds account. Naming a different business than the account profile's switches off every profile fallback (phone, address, city, state, ZIP, website): businessPhone becomes required, and the call fails with missing_business_phone without it. locations, or businessState and businessCity, are then needed too.",
   ),
 });
 

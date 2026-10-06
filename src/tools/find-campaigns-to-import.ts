@@ -24,7 +24,7 @@ export const findCampaignsToImportSchema = z.object({
     .string()
     .optional()
     .describe(
-      "Which Google Ads account to read, when the user has more than one: an ID from the accounts a choose_google_ads_account answer listed, e.g. 123-456-7890. Leave it out when they have one.",
+      "Which Google Ads account to read, when the user has more than one: an ID from the accounts a choose_google_ads_account answer listed, e.g. 123-456-7890. Not needed with one account.",
     ),
 });
 

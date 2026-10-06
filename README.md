@@ -38,6 +38,8 @@ Any other category is accepted — it just falls back to generic defaults instea
 
 ## Installation
 
+> **Using ChatGPT, Claude or Meta AI?** You don't need this package or a key: add the hosted server, `https://getvibeads.com/api/mcp`, in the assistant and sign in to VibeAds when it asks. Steps for each assistant: [Connect ChatGPT, Claude or Meta AI](https://getvibeads.com/docs/integrations/ai-assistants). This package is for clients that run tools on your computer, such as Claude Code, Cursor and Cline.
+
 ### Step 1 — Get your API key
 
 Sign in to your [VibeAds account](https://getvibeads.com) and generate an API key:
