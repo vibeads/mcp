@@ -6,12 +6,13 @@
  * Google Ads account from Claude Desktop, Cursor, or any MCP-compatible
  * client.
  *
- * Built for local service businesses — 26 home-service verticals (plumber,
+ * Built for local service businesses — 27 home-service verticals (plumber,
  * HVAC, electrician, roofer, cleaner, landscaper, pest control, painter,
  * handyman, locksmith, garage door, appliance repair, tree service, fencing,
  * windows & doors, carpet & flooring, waterproofing, pressure washing, air
- * duct & dryer vent cleaning, pool services, junk removal, movers, auto
- * repair, Christmas lighting, dentist, lawyer) plus 8 professional/lead-gen
+ * duct & dryer vent cleaning, commercial cleaning & janitorial, pool
+ * services, junk removal, movers, auto repair, Christmas lighting, dentist,
+ * lawyer) plus 8 professional/lead-gen
  * ones (real estate, insurance, financial services, education, healthcare,
  * consulting, SaaS, B2B services).
  * Scoped access via VIBEADS_API_KEY generated at:
@@ -56,7 +57,7 @@ import {
 import { requireApiKey } from "./gateway.js";
 import { SERVER_INSTRUCTIONS, TOOLS, listedTools } from "./catalog.js";
 
-const SERVER_VERSION = "0.2.18";
+const SERVER_VERSION = "0.2.19";
 const SERVER_NAME = "vibeads-mcp";
 
 // ---------------------------------------------------------------------------
