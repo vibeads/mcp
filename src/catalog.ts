@@ -27,6 +27,10 @@ import {
   researchKeywordsSchema,
 } from "./tools/research-keywords.js";
 import {
+  auditGoogleAdsAccount,
+  auditGoogleAdsAccountSchema,
+} from "./tools/audit-google-ads-account.js";
+import {
   getAccountHealthScore,
   getAccountHealthScoreSchema,
 } from "./tools/get-account-health-score.js";
@@ -127,6 +131,8 @@ export const SERVER_INSTRUCTIONS =
   "account's figures live from Google Ads for a period the user chooses, split by day, device, hour, ad group, " +
   "keyword or location, and research_keywords looks up keyword ideas with Google's search volumes and bids. " +
   "list_keywords reads a campaign's ad groups, keywords and negative keywords live from Google Ads. " +
+  "audit_google_ads_account audits a connected Google Ads account live from Google Ads, campaigns not in VibeAds " +
+  "included: a health score, the issues with what fixes each, and the search terms spending without conversions. " +
   "Reading works on every plan; keyword research, drafting, importing, recommendations, editing campaigns, " +
   "pausing and publishing are part of the Pro and Max plans, as each of those tools says. VibeAds manages the " +
   "campaigns it published or imported; find_campaigns_to_import and import_campaigns bring in campaigns already " +
@@ -169,6 +175,10 @@ export const SERVER_INSTRUCTIONS =
  * and closed-world too: they read the user's own Google Ads account and
  * Google's Keyword Planner through it, through fixed queries, and change
  * nothing anywhere (research_keywords uses VibeAds credits, not ad money).
+ * audit_google_ads_account is read-only and closed-world as well: it runs
+ * VibeAds' account audit on the user's own Google Ads account through fixed
+ * queries and changes nothing there (it keeps the audit in VibeAds for 24
+ * hours, as the dashboard's audit does).
  * list_google_ads_accounts reads VibeAds' own records, and
  * list_google_recommendations reads the user's own Google Ads account, so
  * both are read-only and closed-world like find_campaigns_to_import.
@@ -254,6 +264,16 @@ export const TOOLS: readonly ToolDef[] = [
       "Reads one campaign's figures, or a whole Google Ads account's, for a period the user chooses, live from Google Ads: impressions, clicks, spend, conversions, conversion value, click-through rate, average cost per click, cost per conversion and conversion rate. The period is a preset (the last 7, 30 or 90 days, this month or last month) or a start and end date, up to 90 days; two reports compare two periods, such as September with August. breakdown splits the figures by day, device, hour of the day, ad group, keyword or location. The campaign is one in VibeAds (campaignId) or any campaign in a connected Google Ads account (googleCampaignId); with neither, the report covers the whole account. Money is in the account's currency, not micros, and the days are the account's own. With more than one Google Ads account, a report on an account or on a googleCampaignId first answers choose_google_ads_account with the accounts, and customerId names the one the user picks. Without a Google Ads connection, the answer has a link for the user to connect it. Reading changes nothing. Available on every plan.",
     schema: getPerformanceReportSchema,
     handler: getPerformanceReport,
+  },
+  {
+    name: "audit_google_ads_account",
+    title: "Audit a Google Ads account",
+    // Reads the user's own Google Ads account through fixed queries; changes nothing there.
+    hints: READ_ONLY,
+    description:
+      "Audits one of the user's connected Google Ads accounts, read live from Google Ads: up to 25 Search campaigns over the last 30 days, whether or not they are in VibeAds, against the 25 checks of VibeAds' free account audit (conversions, wasted spend, budget, click-through rate, cost per conversion, Quality Score and its parts, ad extensions, search terms, devices, search partners and more; the cost per click and landing page speed checks run on campaigns in VibeAds, which hold the figures they need). It returns a 0-100 health score and letter grade for the account and for each campaign, the issues grouped by check with what fixes each in Google Ads, each campaign's costliest search terms with clicks and no conversions, and inVibeAds, whether VibeAds already manages each campaign. It answers where an account's budget is going to waste, right after the user connects Google Ads and before anything is imported. Campaigns with no impressions in the last 30 days are left out. VibeAds keeps one audit per account for 24 hours, and a repeat in that time returns it; a fresh audit of an account with many campaigns can take a minute. With more than one Google Ads account, the first answer is choose_google_ads_account with the accounts, and customerId names the one the user picks. Without a Google Ads connection, the answer has a link for the user to connect it. Auditing changes nothing in Google Ads. Available on every plan.",
+    schema: auditGoogleAdsAccountSchema,
+    handler: auditGoogleAdsAccount,
   },
   {
     name: "get_account_health_score",

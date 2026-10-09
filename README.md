@@ -136,6 +136,14 @@ Once configured, you can ask Claude questions like:
 >
 > "Find keyword ideas from my services page for Round Rock and Pflugerville"
 
+### 🧾 Audit a whole Google Ads account
+
+Works right after you connect Google Ads, before anything is imported:
+
+> "Where is my Google Ads budget being wasted?"
+>
+> "Audit my Google Ads account"
+
 ### 📊 Account health
 
 > "What's my VibeAds account health score?"
@@ -175,6 +183,7 @@ Once configured, you can ask Claude questions like:
 | `get_diagnostics` | Latest agent-optimize diagnostics with severity + recommended fix (up to 50) |
 | `find_campaigns_to_import` | Before importing: the campaigns in your Google Ads account, read from Google Ads, each marked with whether it is in VibeAds (VibeAds manages only the campaigns in it). Called `list_google_ads_campaigns` in 0.2.15 |
 | `get_performance_report` | One campaign's or a whole account's figures for a period you choose (a preset or two dates, up to 90 days), read live from Google Ads, optionally by day, device, hour, ad group, keyword or location. Money in the account's currency. VibeAds builds every query; the assistant only picks the period and the breakdown |
+| `audit_google_ads_account` | An audit of one connected Google Ads account, read live from Google Ads: up to 25 Search campaigns over the last 30 days, whether or not they are in VibeAds, with a 0-100 health score and grade for the account and each campaign, the issues grouped by check with what fixes each in Google Ads, and each campaign's costliest search terms with clicks and no conversions. One audit per account is kept for 24 hours |
 | `list_keywords` | One published campaign's ad groups, keywords and negative keywords, read live from Google Ads: match type, status, max CPC and 30 days of clicks, cost and conversions |
 | `research_keywords` | Keyword ideas from Google's Keyword Planner for seed keywords, a web page or both, in the places you name: average monthly searches, competition and top-of-page bid range. Pro/Max, 2 credits (a repeat within 90 days is free) |
 | `list_google_ads_accounts` | Every connected Google Ads account, switched on or not, with the manager account (MCC) each client account sits under |
