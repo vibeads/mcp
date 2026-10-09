@@ -27,6 +27,7 @@
  *   - get_account_health_score — 0-100 score across 6 dimensions
  *   - get_search_term_analysis — wasted spend + winners
  *   - get_diagnostics          — latest agent-optimize diagnostics
+ *   - list_keywords            — a campaign's keywords, live from Google Ads
  *
  * Write/workflow tools (Pro/Max):
  *   - generate_strategy        — draft a campaign strategy (nothing published)
@@ -39,6 +40,13 @@
  *   - add_ad_group             — add the previewed ad group (live on a published campaign)
  *   - request_publish          — start publish flow (human-approval link; this
  *                                package uses an API key, which never publishes itself)
+ *   - add_negative_keywords, add_keywords, set_keyword_status, set_max_cpc,
+ *     set_daily_budget          — direct edits to a live campaign; a budget
+ *                                raise over 20% or a bid raise past 2x/$50
+ *                                gets an approval link (and any budget raise
+ *                                from an API key, as this package uses)
+ *   - resume_campaign          — start a paused campaign (an approval link here,
+ *                                since this package uses an API key)
  *   - check_approval           — poll an approval link / execution
  *
  * License: MIT
@@ -57,7 +65,7 @@ import {
 import { requireApiKey } from "./gateway.js";
 import { SERVER_INSTRUCTIONS, TOOLS, listedTools } from "./catalog.js";
 
-const SERVER_VERSION = "0.2.19";
+const SERVER_VERSION = "0.2.21";
 const SERVER_NAME = "vibeads-mcp";
 
 // ---------------------------------------------------------------------------

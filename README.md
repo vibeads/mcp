@@ -122,6 +122,20 @@ Once configured, you can ask Claude questions like:
 >
 > "What's the CPA for campaign abc12345?"
 
+### 📈 Reports for any period
+
+> "Compare September with August for my Austin plumbing campaign"
+>
+> "Spend by device across my whole account last month"
+>
+> "Which keywords spent the most in the last 90 days?"
+
+### 🔎 Keyword research
+
+> "How many people search for drain cleaning in Austin, TX?"
+>
+> "Find keyword ideas from my services page for Round Rock and Pflugerville"
+
 ### 📊 Account health
 
 > "What's my VibeAds account health score?"
@@ -160,8 +174,11 @@ Once configured, you can ask Claude questions like:
 | `get_search_term_analysis` | Wasted spend + winners from each campaign's latest synced search terms, which cover the 7 days before that sync (configurable cost threshold) |
 | `get_diagnostics` | Latest agent-optimize diagnostics with severity + recommended fix (up to 50) |
 | `find_campaigns_to_import` | Before importing: the campaigns in your Google Ads account, read from Google Ads, each marked with whether it is in VibeAds (VibeAds manages only the campaigns in it). Called `list_google_ads_campaigns` in 0.2.15 |
+| `get_performance_report` | One campaign's or a whole account's figures for a period you choose (a preset or two dates, up to 90 days), read live from Google Ads, optionally by day, device, hour, ad group, keyword or location. Money in the account's currency. VibeAds builds every query; the assistant only picks the period and the breakdown |
+| `list_keywords` | One published campaign's ad groups, keywords and negative keywords, read live from Google Ads: match type, status, max CPC and 30 days of clicks, cost and conversions |
+| `research_keywords` | Keyword ideas from Google's Keyword Planner for seed keywords, a web page or both, in the places you name: average monthly searches, competition and top-of-page bid range. Pro/Max, 2 credits (a repeat within 90 days is free) |
 
-The read tools are **read-only** — they cannot create, modify, pause, or delete anything in your Google Ads account. They run server-side through the VibeAds gateway and need only `VIBEADS_API_KEY`. Read tools work on any plan, free tier included.
+The read tools are **read-only**: they cannot create, modify, pause, or delete anything in your Google Ads account. They run server-side through the VibeAds gateway and need only `VIBEADS_API_KEY`. Read tools work on any plan, free tier included, except `research_keywords`, which needs Pro or Max.
 
 ### Write tools (Pro/Max)
 
@@ -178,8 +195,16 @@ Write tools talk to the secure server-side VibeAds gateway and need **only `VIBE
 | `add_ad_group` | Add a previewed ad group. On a published campaign it starts serving at once, within the campaign's budget |
 | `request_publish` | Start the publish flow for a campaign that has ad groups — returns a human-approval URL because publishing spends real money. With more than one Google Ads account it asks which one, and publishes to that one only |
 | `import_campaigns` | Bring up to 3 campaigns from your Google Ads account into VibeAds, so its optimizer and reports cover them. Nothing changes in Google Ads. 1 credit each |
-| `pause_campaign` | Pause a live campaign in Google Ads. Starting it again is done in VibeAds |
-| `check_approval` | Poll a publish approval: pending → approved → executing → executed (or rejected / expired / failed) |
+| `pause_campaign` | Pause a live campaign in Google Ads |
+| `resume_campaign` | Start a paused campaign again. Starting spends money, so with an API key it returns a human-approval URL, as publishing does |
+| `add_negative_keywords` | Add up to 20 negative keywords to a campaign or one ad group, at once. One that would block the campaign's own keywords is left out |
+| `add_keywords` | Add up to 20 keywords to one ad group, at once, at the ad group's default max CPC |
+| `set_keyword_status` | Pause keywords, or turn paused ones back on |
+| `set_max_cpc` | Set an ad group's or a keyword's max CPC on a Manual CPC campaign. Up to double and $50 a click at once; more returns an approval URL |
+| `set_daily_budget` | Set a campaign's daily budget. A decrease runs at once; with an API key any increase returns an approval URL |
+| `check_approval` | Poll a publish or change approval: pending → approved → executing → executed (or rejected / expired / failed) |
+
+Every keyword, bid, budget and restart change is listed on the campaign's Optimize tab in VibeAds, where it can be undone. VibeAds never rolls these back by itself. An assistant can make 20 changes to a campaign a day.
 
 **From idea to live campaign:**
 
