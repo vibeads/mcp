@@ -171,10 +171,13 @@ export const SERVER_INSTRUCTIONS =
  * user's own Google Ads account through fixed queries and is read-only. import_campaigns and
  * find_campaigns_to_import read the user's own Google Ads account and change
  * nothing there, so they are closed-world; import_campaigns writes inside
- * VibeAds only. get_performance_report and research_keywords are read-only
- * and closed-world too: they read the user's own Google Ads account and
- * Google's Keyword Planner through it, through fixed queries, and change
- * nothing anywhere (research_keywords uses VibeAds credits, not ad money).
+ * VibeAds only. get_performance_report is read-only and closed-world too: it
+ * reads the user's own Google Ads account through fixed queries and changes
+ * nothing anywhere. research_keywords is read-only but open-world: given a
+ * url, Google's Keyword Planner reads that page, a site anyone may run
+ * (OpenAI's plugin review held it for a person to check while it said
+ * closed-world, Oct 9 2026). It changes nothing anywhere and uses VibeAds
+ * credits, not ad money.
  * audit_google_ads_account is read-only and closed-world as well: it runs
  * VibeAds' account audit on the user's own Google Ads account through fixed
  * queries and changes nothing there (it keeps the audit in VibeAds for 24
@@ -350,10 +353,12 @@ export const TOOLS: readonly ToolDef[] = [
   {
     name: "research_keywords",
     title: "Research keywords",
-    // Reads Google's Keyword Planner through the user's own account; adds nothing anywhere.
-    hints: READ_ONLY,
+    // Reads Google's Keyword Planner through the user's own account and adds
+    // nothing anywhere, but given a url Google reads that page, which anyone
+    // may run, so it is open-world like generate_strategy.
+    hints: { ...READ_ONLY, openWorldHint: true },
     description:
-      "Looks up keyword ideas in Google's Keyword Planner for seed keywords, a web page, or both, in the places named: a city such as \"Austin, TX\", a ZIP code, a county, a state or a whole country, up to 10. Each idea has its average monthly searches over the last 12 months, its competition (LOW, MEDIUM or HIGH, and 0 to 100) and the top-of-page bid range in the Google Ads account's currency, highest search volume first. The figures are Google's, for English-language searches, read through the user's connected Google Ads account; nothing is added to any campaign. Costs 2 VibeAds credits when Google is asked; the same research repeated within 90 days is answered from VibeAds' saved copy at no cost. A place Google's location list does not have is named in the answer, and nothing is charged. With more than one Google Ads account, the first answer is choose_google_ads_account, and customerId names the account to use. Without a Google Ads connection, the answer has a link for the user to connect it. Requires a Pro or Max plan.",
+      "Looks up keyword ideas in Google's Keyword Planner for seed keywords, a public web page, or both, in the places named: a city such as \"Austin, TX\", a ZIP code, a county, a state or a whole country, up to 10. Each idea has its average monthly searches over the last 12 months, its competition (LOW, MEDIUM or HIGH, and 0 to 100) and the top-of-page bid range in the Google Ads account's currency, highest search volume first. The figures are Google's, for English-language searches, read through the user's connected Google Ads account; nothing is added to any campaign. Given a web page, Google reads that page, whoever runs the site, to suggest ideas. Costs 2 VibeAds credits when Google is asked; the same research repeated within 90 days is answered from VibeAds' saved copy at no cost. A place Google's location list does not have is named in the answer, and nothing is charged. With more than one Google Ads account, the first answer is choose_google_ads_account, and customerId names the account to use. Without a Google Ads connection, the answer has a link for the user to connect it. Requires a Pro or Max plan.",
     schema: researchKeywordsSchema,
     handler: researchKeywords,
   },

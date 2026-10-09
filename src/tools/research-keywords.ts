@@ -21,7 +21,7 @@ export const researchKeywordsSchema = z.object({
   url: z
     .string()
     .optional()
-    .describe("A web page Google reads for ideas, such as the business's services page."),
+    .describe("A public web page Google reads for ideas, such as the business's services page (http or https)."),
   locations: z
     .array(z.string())
     .min(1)
