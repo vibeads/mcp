@@ -93,6 +93,22 @@ import { setKeywordStatus, setKeywordStatusSchema } from "./tools/set-keyword-st
 import { setMaxCpc, setMaxCpcSchema } from "./tools/set-max-cpc.js";
 import { setDailyBudget, setDailyBudgetSchema } from "./tools/set-daily-budget.js";
 import { resumeCampaign, resumeCampaignSchema } from "./tools/resume-campaign.js";
+import {
+  listGoogleAdsAccounts,
+  listGoogleAdsAccountsSchema,
+} from "./tools/list-google-ads-accounts.js";
+import {
+  listGoogleRecommendations,
+  listGoogleRecommendationsSchema,
+} from "./tools/list-google-recommendations.js";
+import {
+  applyGoogleRecommendation,
+  applyGoogleRecommendationSchema,
+} from "./tools/apply-google-recommendation.js";
+import {
+  dismissGoogleRecommendation,
+  dismissGoogleRecommendationSchema,
+} from "./tools/dismiss-google-recommendation.js";
 
 /**
  * What the server tells an agent before it picks a tool (the MCP
@@ -119,14 +135,17 @@ export const SERVER_INSTRUCTIONS =
   "spends the advertiser's own money. For a connection the user made by signing in to VibeAds, within the daily " +
   "budget the user allows AI assistants, request_publish publishes once the user confirms the campaign's daily " +
   "budget; otherwise it returns an approval link, which the user approves in VibeAds and this connection cannot. " +
-  "With more than one Google Ads account, the user chooses the account a campaign goes to. " +
+  "With more than one Google Ads account, the user chooses the account a campaign goes to; " +
+  "list_google_ads_accounts lists the connected accounts, client accounts under a manager account included. " +
   "add_negative_keywords, add_keywords, set_keyword_status, set_max_cpc and set_daily_budget change a published " +
   "campaign directly, within limits VibeAds sets: a daily budget raised by more than 20%, or a max CPC raised past " +
   "double or $50, is approved through a link in VibeAds. Each change is listed on the campaign's Optimize tab in " +
   "VibeAds, where it can be undone. pause_campaign pauses a live campaign, and resume_campaign starts a paused one " +
   "again under the same rules as publishing. list_recommendations lists the optimizer's recommendations and how " +
   "each can be approved: approve_recommendation applies one the user approves, preview_ad_group and add_ad_group " +
-  "handle a new ad group, and a budget increase of more than 20% is approved through a link in VibeAds. Each " +
+  "handle a new ad group, and a budget increase of more than 20% is approved through a link in VibeAds. " +
+  "list_google_recommendations lists Google's own recommendations for an account, apply_google_recommendation " +
+  "applies one within VibeAds' rules, and dismiss_google_recommendation removes one from Google's list. Each " +
   "connection can make 60 tool calls per hour.";
 
 /**
@@ -150,6 +169,13 @@ export const SERVER_INSTRUCTIONS =
  * and closed-world too: they read the user's own Google Ads account and
  * Google's Keyword Planner through it, through fixed queries, and change
  * nothing anywhere (research_keywords uses VibeAds credits, not ad money).
+ * list_google_ads_accounts reads VibeAds' own records, and
+ * list_google_recommendations reads the user's own Google Ads account, so
+ * both are read-only and closed-world like find_campaigns_to_import.
+ * apply_google_recommendation is destructive and open-world: it changes live
+ * campaigns in Google Ads and can raise a budget (up to 20%).
+ * dismiss_google_recommendation is destructive and open-world too: it writes
+ * to Google Ads, and a dismissed recommendation cannot be brought back.
  * request_publish is destructive and open-world: since Oct 3 2026 it
  * publishes a Search campaign to Google Ads itself, for a connection the
  * user made by signing in, when they allow assistants to publish up to a
@@ -258,6 +284,26 @@ export const TOOLS: readonly ToolDef[] = [
       "Reads the campaigns in one of the user's connected Google Ads accounts directly from Google Ads (up to 50, removed ones left out) and marks each with inVibeAds, whether VibeAds already manages it. It is for bringing existing campaigns into VibeAds: the user picks the ones to bring in, and import_campaigns copies them. Each campaign has its name, googleCampaignId, status, type, daily budget, and the last 30 days of impressions, clicks, spend and conversions. VibeAds' optimizer, reports and recommendations cover the campaigns in VibeAds, which makes this useful right after the user connects Google Ads. With more than one Google Ads account, the first answer is choose_google_ads_account with the accounts, and a call with customerId reads the one the user picks. Without a Google Ads connection, the answer has a link for the user to connect it. Reading changes nothing. Available on every plan.",
     schema: findCampaignsToImportSchema,
     handler: findCampaignsToImport,
+  },
+  {
+    name: "list_google_ads_accounts",
+    title: "List connected Google Ads accounts",
+    // Reads VibeAds' own records of the connection; changes nothing anywhere.
+    hints: READ_ONLY,
+    description:
+      "Lists every Google Ads account connected to the user's VibeAds account, switched on or not: name, ID, whether it is the default, and inUse, whether VibeAds manages it. A client account reached through a manager account (MCC) carries managerAccount, the manager it sits under, and managerAccounts lists each manager with its number of connected clients. It is useful for agencies, to tell clients apart before reading, importing or publishing, and when a choose_google_ads_account answer names accounts. Accounts are switched on and off in VibeAds Settings, up to as many as the plan runs at once. Reading changes nothing. Available on every plan.",
+    schema: listGoogleAdsAccountsSchema,
+    handler: listGoogleAdsAccounts,
+  },
+  {
+    name: "list_google_recommendations",
+    title: "List Google's recommendations",
+    // Reads the user's own Google Ads account; changes nothing anywhere.
+    hints: READ_ONLY,
+    description:
+      "Reads Google's own recommendations for one of the user's Google Ads accounts, as on the account's Recommendations page in Google Ads (up to 25, open ones), optionally for one campaign. Each has its resourceName, type, a title in plain words, the campaigns it is for (and whether each is in VibeAds), what it would change (for a budget, the daily budget now and after; for a keyword, its text and match type; for ad text, the lines Google would add), Google's weekly estimate where Google gives one, and canApply. in_chat: apply_google_recommendation can apply it once the user agrees. in_chat_after_text_check: Google's suggested ad text goes live after VibeAds checks each line against what the business has told it. not_here: reason says why (bidding strategy changes, new networks, broad match before 30 conversions, budget increases above 20%, campaign types VibeAds does not run). VibeAds' optimizer's own recommendations are in list_recommendations. With more than one Google Ads account, the first answer is choose_google_ads_account. Reading changes nothing. Available on every plan.",
+    schema: listGoogleRecommendationsSchema,
+    handler: listGoogleRecommendations,
   },
   {
     name: "get_diagnostics",
@@ -452,6 +498,26 @@ export const TOOLS: readonly ToolDef[] = [
       "Sets a published campaign's daily budget, in dollars. A decrease, or an increase of up to 20%, changes in Google Ads right away and is listed on the campaign's Optimize tab in VibeAds, where Undo puts the old budget back. The 20% is measured from the lowest daily budget the campaign had in the last 24 hours. A larger increase, or any increase from a connection made with a VibeAds API key, is a change the user approves: the reply has approvalRequired and an approvalUrl they open in VibeAds, and nothing changes until then (check_approval reports the outcome). An assistant can change a campaign's daily budget 3 times a day. Requires a Pro or Max plan.",
     schema: setDailyBudgetSchema,
     handler: setDailyBudget,
+  },
+  {
+    name: "apply_google_recommendation",
+    title: "Apply a Google recommendation",
+    // Changes live campaigns in Google Ads and can raise a budget.
+    hints: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
+    description:
+      "Applies one of Google's recommendations in the user's Google Ads account, as Google recommends it, by its resourceName from list_google_recommendations. VibeAds reads the recommendation from Google again first and applies it when its rules allow: a budget decrease, or an increase of up to 20% measured from the lowest daily budget in the last 24 hours and asked over a connection the user made by signing in, a keyword that is not broad match, ad rotation and landing-page images, and Google's suggested ad text (callouts, sitelinks, responsive search ads and their headlines) when every line passes VibeAds' check against what the business has told it. Anything else is refused with the reason and nothing changes. A budget increase spends more of the advertiser's own money. Applied changes reach the campaigns in VibeAds at its next sync, within 6 hours. Up to 20 a day. Requires a Pro or Max plan.",
+    schema: applyGoogleRecommendationSchema,
+    handler: applyGoogleRecommendation,
+  },
+  {
+    name: "dismiss_google_recommendation",
+    title: "Dismiss a Google recommendation",
+    // Writes to Google Ads; a dismissed recommendation cannot be restored.
+    hints: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
+    description:
+      "Dismisses one of Google's recommendations by its resourceName from list_google_recommendations: Google stops showing it on the account's Recommendations page. No campaign, budget, keyword or ad changes. Requires a Pro or Max plan.",
+    schema: dismissGoogleRecommendationSchema,
+    handler: dismissGoogleRecommendation,
   },
   {
     name: "check_approval",

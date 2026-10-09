@@ -177,6 +177,8 @@ Once configured, you can ask Claude questions like:
 | `get_performance_report` | One campaign's or a whole account's figures for a period you choose (a preset or two dates, up to 90 days), read live from Google Ads, optionally by day, device, hour, ad group, keyword or location. Money in the account's currency. VibeAds builds every query; the assistant only picks the period and the breakdown |
 | `list_keywords` | One published campaign's ad groups, keywords and negative keywords, read live from Google Ads: match type, status, max CPC and 30 days of clicks, cost and conversions |
 | `research_keywords` | Keyword ideas from Google's Keyword Planner for seed keywords, a web page or both, in the places you name: average monthly searches, competition and top-of-page bid range. Pro/Max, 2 credits (a repeat within 90 days is free) |
+| `list_google_ads_accounts` | Every connected Google Ads account, switched on or not, with the manager account (MCC) each client account sits under |
+| `list_google_recommendations` | Google's own recommendations for an account (its Recommendations page), with Google's estimate and whether each can be applied from the chat |
 
 The read tools are **read-only**: they cannot create, modify, pause, or delete anything in your Google Ads account. They run server-side through the VibeAds gateway and need only `VIBEADS_API_KEY`. Read tools work on any plan, free tier included, except `research_keywords`, which needs Pro or Max.
 
@@ -202,6 +204,8 @@ Write tools talk to the secure server-side VibeAds gateway and need **only `VIBE
 | `set_keyword_status` | Pause keywords, or turn paused ones back on |
 | `set_max_cpc` | Set an ad group's or a keyword's max CPC on a Manual CPC campaign. Up to double and $50 a click at once; more returns an approval URL |
 | `set_daily_budget` | Set a campaign's daily budget. A decrease runs at once; with an API key any increase returns an approval URL |
+| `apply_google_recommendation` | Apply one of Google's recommendations within VibeAds' rules: budget changes up to +20% (from the lowest in the last 24 hours; never raised over an API key), exact or phrase keywords, and Google's ad text only when every line passes VibeAds' claim check. Up to 20 a day |
+| `dismiss_google_recommendation` | Remove one of Google's recommendations from its list. No campaign changes |
 | `check_approval` | Poll a publish or change approval: pending → approved → executing → executed (or rejected / expired / failed) |
 
 Every keyword, bid, budget and restart change is listed on the campaign's Optimize tab in VibeAds, where it can be undone. VibeAds never rolls these back by itself. An assistant can make 20 changes to a campaign a day.
