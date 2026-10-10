@@ -103,7 +103,7 @@ export const generateStrategySchema = z.object({
     .max(5)
     .optional()
     .describe(
-      "Up to 5 competing businesses to add competitor ad groups for: ads shown on searches for those businesses. Included in the Max plan only; on other plans the draft leaves them out and the reply says so.",
+      "Up to 5 competing businesses to add competitor ad groups for: ads shown on searches for those businesses. A Max plan feature; VibeAds checks the plan, and on other plans the draft leaves them out and the reply says so with the plans page.",
     ),
   ...businessContactFields,
   // generate_strategy also targets locations, so its businessName says what a
