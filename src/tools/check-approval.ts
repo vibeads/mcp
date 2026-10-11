@@ -15,7 +15,7 @@ export const checkApprovalSchema = z.object({
   approvalId: z
     .string()
     .describe(
-      "The approvalId returned by request_publish, or by approve_recommendation when it returned approvalRequired.",
+      "The approvalId returned by request_publish, or by set_daily_budget, set_max_cpc or resume_campaign when it returned approvalRequired.",
     ),
 });
 
@@ -60,16 +60,16 @@ const STATUS_GUIDANCE: Record<ApprovalStatus, string> = {
   failed: "❌ Publish execution failed. See the error details below.",
 };
 
-/** An approval link for a budget increase above the chat limit (approve_recommendation). */
+/** An approval link for a change above the chat limit (set_daily_budget, set_max_cpc, resume_campaign; approve_recommendation before 0.2.26). */
 const BUDGET_GUIDANCE: Partial<Record<ApprovalStatus, string>> = {
   pending:
-    "⏳ Waiting on the user. Remind them to open the approval link from `approve_recommendation` in their browser and approve the budget change; it cannot be approved through the API.",
+    "⏳ Waiting on the user, who approves the change at the approval link in their browser; it cannot be approved through this connection.",
   approved: "👍 Approved by the user. The budget change runs shortly.",
   executing: "The budget change is being made in Google Ads now. Check again in a minute.",
   executed: "✅ Approved: the daily budget was changed in Google Ads.",
   rejected: "🚫 The user rejected this budget change. Nothing changed.",
   expired:
-    "⌛ This link expired before the user acted on it. Call `approve_recommendation` again for a fresh link if the recommendation is still pending.",
+    "⌛ This link expired before the user acted on it. Asking for the same change again makes a fresh link, while the recommendation is still pending.",
   failed: "❌ The budget change did not go through. See the error below.",
 };
 

@@ -9,7 +9,7 @@
 
 import { z } from "zod";
 import { callGateway } from "../gateway.js";
-import { campaignIdField, type EditReply, editReply, matchTypeField } from "./edit-reply.js";
+import { campaignIdField, type EditReply, editReply, matchTypeField, recommendationFields } from "./edit-reply.js";
 
 export const setKeywordStatusSchema = z.object({
   campaignId: campaignIdField,
@@ -23,6 +23,7 @@ export const setKeywordStatusSchema = z.object({
     .min(1)
     .max(20)
     .describe("1 to 20 keywords of the campaign."),
+  ...recommendationFields,
 });
 
 export type SetKeywordStatusInput = z.infer<typeof setKeywordStatusSchema>;

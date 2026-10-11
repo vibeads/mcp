@@ -3,10 +3,11 @@
  *
  * Google's own recommendations for one of the user's Google Ads accounts, as
  * on the account's Recommendations page: what each would change, Google's
- * weekly estimate, and whether apply_google_recommendation can apply it here.
- * VibeAds decides that per type (budget increases up to 20%, keywords that are
- * not broad match, Google's ad text only when it passes VibeAds' claim rules).
- * Reads only.
+ * weekly estimate, and the tool and arguments that make the same change from
+ * a chat (set_daily_budget for a budget, add_keywords for a keyword that is not
+ * broad match, on campaigns in VibeAds), or why it is applied in Google Ads.
+ * Reads only. Since 0.2.26 there is no apply-by-id tool: OpenAI's plugin scan
+ * asked for every kind of change to be its own tool.
  *
  * Example prompt: "What does Google recommend for my Austin campaign?"
  */
@@ -40,8 +41,12 @@ interface GoogleRecommendation {
   campaigns: Array<{ googleCampaignId: string; name: string | null; campaignId?: string; inVibeAds: boolean }>;
   details: Record<string, unknown>;
   googleEstimatePerWeek?: Record<string, number>;
-  canApply: "in_chat" | "in_chat_after_text_check" | "not_here";
+  /** From 0.2.26 gateways. */
+  applyIn?: "chat" | "google_ads";
+  applyWith?: { tool: string; arguments: Record<string, unknown> };
   reason?: string;
+  /** From older gateways. */
+  canApply?: "in_chat" | "in_chat_after_text_check" | "not_here";
 }
 
 interface ListGoogleRecommendationsResult {
@@ -55,7 +60,7 @@ function detailText(d: Record<string, unknown>): string {
   const parts: string[] = [];
   if (typeof d.currentDailyBudgetUsd === "number" || typeof d.recommendedDailyBudgetUsd === "number") {
     parts.push(
-      `daily budget $${d.currentDailyBudgetUsd ?? "?"} → $${d.recommendedDailyBudgetUsd ?? "?"}` +
+      `daily budget $${d.currentDailyBudgetUsd ?? "?"} to $${d.recommendedDailyBudgetUsd ?? "?"}` +
         (typeof d.changePercent === "number" ? ` (${d.changePercent > 0 ? "+" : ""}${d.changePercent}%)` : ""),
     );
   }
@@ -66,11 +71,11 @@ function detailText(d: Record<string, unknown>): string {
   return parts.join("; ");
 }
 
-const CAN_APPLY: Record<GoogleRecommendation["canApply"], string> = {
-  in_chat: "can be applied here",
-  in_chat_after_text_check: "can be applied here if its text passes VibeAds' check",
-  not_here: "not applied here",
-};
+function howText(r: GoogleRecommendation): string {
+  if (r.applyWith) return `Carried out with \`${r.applyWith.tool}\` ${JSON.stringify(r.applyWith.arguments)}`;
+  if (r.applyIn === "google_ads") return `Applied in Google Ads${r.reason ? ` (${r.reason})` : ""}`;
+  return r.reason ? `Not applied here (${r.reason})` : "Applied in Google Ads";
+}
 
 export async function listGoogleRecommendations(input: ListGoogleRecommendationsInput): Promise<string> {
   const data = await callGateway<ListGoogleRecommendationsResult>("list_google_recommendations", input);
@@ -86,7 +91,7 @@ export async function listGoogleRecommendations(input: ListGoogleRecommendations
       : "";
     lines.push(
       `- **${r.title}**${campaigns ? ` for ${campaigns}` : ""}${detail ? `: ${detail}` : ""}.${estimate} ` +
-        `${CAN_APPLY[r.canApply]}${r.reason ? ` (${r.reason})` : ""}. resourceName \`${r.resourceName}\``,
+        `${howText(r)}. resourceName \`${r.resourceName}\``,
     );
   }
   if (data.more) lines.push(`- …and ${data.more} more.`);

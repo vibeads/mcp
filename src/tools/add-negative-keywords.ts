@@ -10,7 +10,7 @@
 
 import { z } from "zod";
 import { callGateway } from "../gateway.js";
-import { campaignIdField, type EditReply, editReply, matchTypeField } from "./edit-reply.js";
+import { campaignIdField, type EditReply, editReply, matchTypeField, recommendationFields } from "./edit-reply.js";
 
 export const addNegativeKeywordsSchema = z.object({
   campaignId: campaignIdField,
@@ -23,6 +23,7 @@ export const addNegativeKeywordsSchema = z.object({
     .string()
     .optional()
     .describe("An ad group's name, for negatives on that ad group only. Without it they apply to the whole campaign."),
+  ...recommendationFields,
 });
 
 export type AddNegativeKeywordsInput = z.infer<typeof addNegativeKeywordsSchema>;

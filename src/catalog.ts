@@ -59,10 +59,6 @@ import {
   listRecommendationsSchema,
 } from "./tools/list-recommendations.js";
 import {
-  approveRecommendation,
-  approveRecommendationSchema,
-} from "./tools/approve-recommendation.js";
-import {
   previewAdGroup,
   previewAdGroupSchema,
 } from "./tools/preview-ad-group.js";
@@ -106,10 +102,6 @@ import {
   listGoogleRecommendationsSchema,
 } from "./tools/list-google-recommendations.js";
 import {
-  applyGoogleRecommendation,
-  applyGoogleRecommendationSchema,
-} from "./tools/apply-google-recommendation.js";
-import {
   dismissGoogleRecommendation,
   dismissGoogleRecommendationSchema,
 } from "./tools/dismiss-google-recommendation.js";
@@ -134,7 +126,8 @@ export const SERVER_INSTRUCTIONS =
   "audit_google_ads_account audits a connected Google Ads account live from Google Ads, campaigns not in VibeAds " +
   "included: a health score, the issues with what fixes each, and the search terms spending without conversions. " +
   "Reading works on every plan; keyword research, drafting, importing, recommendations, editing campaigns, " +
-  "pausing and publishing are part of the Pro and Max plans, as each of those tools says. VibeAds manages the " +
+  "pausing and publishing are part of the Pro and Max plans, as each of those tools says, and list_campaigns " +
+  "names the plan the user's account is on. VibeAds manages the " +
   "campaigns it published or imported; find_campaigns_to_import and import_campaigns bring in campaigns already " +
   "running in the user's Google Ads account. A new campaign is drafted with generate_strategy, followed with " +
   "get_strategy_status, built as a draft with apply_strategy and published with request_publish. Publishing " +
@@ -147,18 +140,21 @@ export const SERVER_INSTRUCTIONS =
   "campaign directly, within limits VibeAds sets: a daily budget raised by more than 20%, or a max CPC raised past " +
   "double or $50, is approved through a link in VibeAds. Each change is listed on the campaign's Optimize tab in " +
   "VibeAds, where it can be undone. pause_campaign pauses a live campaign, and resume_campaign starts a paused one " +
-  "again under the same rules as publishing. list_recommendations lists the optimizer's recommendations and how " +
-  "each can be approved: approve_recommendation applies one the user approves, preview_ad_group and add_ad_group " +
-  "handle a new ad group, and a budget increase of more than 20% is approved through a link in VibeAds. " +
-  "list_google_recommendations lists Google's own recommendations for an account, apply_google_recommendation " +
-  "applies one within VibeAds' rules, and dismiss_google_recommendation removes one from Google's list. Each " +
-  "connection can make 60 tool calls per hour.";
+  "again under the same rules as publishing. list_recommendations lists the optimizer's recommendations, each " +
+  "with the tool and the exact arguments that carry it out (one of those edit tools, or preview_ad_group and " +
+  "add_ad_group for a new ad group); a recommendation no tool can make is approved on the campaign's Optimize tab " +
+  "in VibeAds. list_google_recommendations lists Google's own recommendations for an account the same way, and " +
+  "dismiss_google_recommendation removes one from Google's list. Each connection can make 60 tool calls per hour.";
 
 /**
  * MCP tool annotations (2025-03-26 and later): hints an agent uses to decide
  * which calls need the user's say-so. Read tools only read VibeAds' own copy
- * of the account. approve_recommendation and add_ad_group change live Google
- * Ads campaigns, so they are open-world. generate_strategy is open-world too:
+ * of the account. add_ad_group changes live Google Ads campaigns, so it is
+ * open-world. approve_recommendation and apply_google_recommendation are gone
+ * (0.2.26): OpenAI's plugin scan refused a tool that applies whatever a stored
+ * recommendation says, "operations that are not individually exposed", so a
+ * recommendation is carried out with the edit tool for its kind of change,
+ * given the recommendation's ids. generate_strategy is open-world too:
  * it reads the public websites of the competitors the user names, a system
  * nobody here controls (OpenAI's tool scan flagged it as closed, Oct 1 2026).
  * preview_ad_group writes a preview inside VibeAds and nothing else.
@@ -185,8 +181,6 @@ export const SERVER_INSTRUCTIONS =
  * list_google_ads_accounts reads VibeAds' own records, and
  * list_google_recommendations reads the user's own Google Ads account, so
  * both are read-only and closed-world like find_campaigns_to_import.
- * apply_google_recommendation is destructive and open-world: it changes live
- * campaigns in Google Ads and can raise a budget (up to 20%).
  * dismiss_google_recommendation is destructive and open-world too: it writes
  * to Google Ads, and a dismissed recommendation cannot be brought back.
  * request_publish is destructive and open-world: since Oct 3 2026 it
@@ -245,7 +239,7 @@ export const TOOLS: readonly ToolDef[] = [
     title: "List campaigns",
     hints: READ_ONLY,
     description:
-      "Lists the user's campaigns in VibeAds, newest first (default 25, max 100): the Google Ads campaigns VibeAds published or imported, and drafts. This is the list for a request to see the user's campaigns in VibeAds, \"my Google Ads campaigns in VibeAds\" included, and it works with or without a Google Ads connection. Each campaign has its name, full campaign ID, status, whether it is published to Google Ads, category and business city, daily budget, and created date. It has no performance metrics (get_campaign_details has the last 7 days, get_performance_report any period). Every tool that takes a campaign ID accepts the ID it returns. It reads VibeAds, not Google Ads: campaigns that exist only in the user's Google Ads account, not published from or imported into VibeAds, are not in this list. find_campaigns_to_import reads those, and answers what campaigns a Google Ads account already has.",
+      "Lists the user's campaigns in VibeAds, newest first (default 25, max 100): the Google Ads campaigns VibeAds published or imported, and drafts. This is the list for a request to see the user's campaigns in VibeAds, \"my Google Ads campaigns in VibeAds\" included, and it works with or without a Google Ads connection. Each campaign has its name, full campaign ID, status, whether it is published to Google Ads, category and business city, daily budget, and created date, and the list names the plan the user's VibeAds account is on (Free, Pro or Max). It has no performance metrics (get_campaign_details has the last 7 days, get_performance_report any period). Every tool that takes a campaign ID accepts the ID it returns. It reads VibeAds, not Google Ads: campaigns that exist only in the user's Google Ads account, not published from or imported into VibeAds, are not in this list. find_campaigns_to_import reads those, and answers what campaigns a Google Ads account already has.",
     schema: listCampaignsSchema,
     handler: listCampaigns,
   },
@@ -324,7 +318,7 @@ export const TOOLS: readonly ToolDef[] = [
     // Reads the user's own Google Ads account; changes nothing anywhere.
     hints: READ_ONLY,
     description:
-      "Reads Google's own recommendations for one of the user's Google Ads accounts, as on the account's Recommendations page in Google Ads (up to 25, open ones), optionally for one campaign. Each has its resourceName, type, a title in plain words, the campaigns it is for (and whether each is in VibeAds), what it would change (for a budget, the daily budget now and after; for a keyword, its text and match type; for ad text, the lines Google would add), Google's weekly estimate where Google gives one, and canApply. in_chat: apply_google_recommendation can apply it once the user agrees. in_chat_after_text_check: Google's suggested ad text goes live after VibeAds checks each line against what the business has told it. not_here: reason says why (bidding strategy changes, new networks, broad match before 30 conversions, budget increases above 20%, campaign types VibeAds does not run). VibeAds' optimizer's own recommendations are in list_recommendations. With more than one Google Ads account, the first answer is choose_google_ads_account. Reading changes nothing. Available on every plan.",
+      "Reads Google's own recommendations for one of the user's Google Ads accounts, as on the account's Recommendations page in Google Ads (up to 25, open ones), optionally for one campaign. Each has its resourceName, type, a title in plain words, the campaigns it is for (and whether each is in VibeAds), what it would change (for a budget, the daily budget now and after; for a keyword, its text and match type; for ad text, the lines Google would add), and Google's weekly estimate where Google gives one. applyIn says where the change is made. chat: applyWith is the tool and the exact arguments that make the same change (set_daily_budget for a budget, add_keywords for an exact or phrase keyword, on campaigns in VibeAds), each with its own limits. google_ads: reason says why, and the user applies it on the account's Recommendations page in Google Ads (bidding strategy changes, new networks, broad match before 30 conversions, Google's suggested ad text, campaigns not in VibeAds). dismiss_google_recommendation removes one from Google's list. VibeAds' optimizer's own recommendations are in list_recommendations. With more than one Google Ads account, the first answer is choose_google_ads_account. Reading changes nothing. Available on every plan.",
     schema: listGoogleRecommendationsSchema,
     handler: listGoogleRecommendations,
   },
@@ -333,7 +327,7 @@ export const TOOLS: readonly ToolDef[] = [
     title: "Get diagnostics",
     hints: READ_ONLY,
     description:
-      "Return up to limit issues (default 20, max 50) from the optimizer's most recent run on each campaign, highest severity first: rule, campaign, problem, affected metric with current value vs benchmark, recommended fix and estimated impact. The optimizer runs every 12 hours on published campaigns with synced Google Ads data, so new or unpublished campaigns have none. It returns no recommendation IDs; list_recommendations lists the pending changes approve_recommendation can execute. Can filter by severity and scope to one campaign.",
+      "Return up to limit issues (default 20, max 50) from the optimizer's most recent run on each campaign, highest severity first: rule, campaign, problem, affected metric with current value vs benchmark, recommended fix and estimated impact. The optimizer runs every 12 hours on published campaigns with synced Google Ads data, so new or unpublished campaigns have none. It returns no recommendation IDs; list_recommendations lists the pending changes, each with the tool that carries it out. Can filter by severity and scope to one campaign.",
     schema: getDiagnosticsSchema,
     handler: getDiagnostics,
   },
@@ -398,19 +392,9 @@ export const TOOLS: readonly ToolDef[] = [
     title: "List pending recommendations",
     hints: READ_ONLY,
     description:
-      "Lists the changes VibeAds recommends for the user's campaigns that are waiting for the user's decision, from the 25 most recent optimization sessions. Each session has a sessionId and its campaign; each recommendation has a recommendationId, the change it would make, the reason, a risk level, a blast radius (how much harm the change could do if it is wrong), the estimated impact, and approval, which says how it can be approved: approve (approve_recommendation applies it when the user approves), approval_link (a budget increase of more than 20%; approve_recommendation returns a link the user opens in VibeAds), preview_then_add (a new ad group, previewed with preview_ad_group using the sessionId and recommendationId and added with add_ad_group) or not_applicable (advice, with nothing to apply). Budget changes show the current and new daily budget. Reading changes nothing. Approving one recommendation rejects the other recommendations in its session. Requires a Pro or Max plan.",
+      "Lists the changes VibeAds recommends for the user's campaigns that are waiting for the user's decision, from the 25 most recent optimization sessions. Each session has a sessionId and its campaign; each recommendation has a recommendationId, the change it would make, the reason, a risk level, a blast radius (how much harm the change could do if it is wrong), the estimated impact, and applyWith: the tool and the exact arguments that carry it out, the recommendation's sessionId and recommendationId included (add_negative_keywords, set_keyword_status, set_max_cpc, set_daily_budget, or preview_ad_group then add_ad_group for a new ad group). approval says what that tool does with it: in_chat (it makes the change once the user agrees), approval_link (a budget increase of more than 20%; set_daily_budget returns a link the user opens in VibeAds), preview_then_add (a new ad group), in_vibeads (no tool makes this change from a chat; optimizeUrl is the campaign's Optimize tab, where the user approves it) or not_applicable (advice). Budget changes show the current and new daily budget. Carrying out one recommendation records the other recommendations in its session as rejected. Reading changes nothing. Requires a Pro or Max plan.",
     schema: listRecommendationsSchema,
     handler: listRecommendations,
-  },
-  {
-    name: "approve_recommendation",
-    title: "Approve a recommendation",
-    // Changes live Google Ads campaigns and rejects the rest of the session.
-    hints: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
-    description:
-      "Applies one recommendation from list_recommendations that the user approves, by its sessionId and recommendationId. It changes the user's live Google Ads campaigns right away (for example adding negative keywords, changing bids, lowering a budget or raising it by up to 20%, or pausing keywords or ad groups), through the same path as the approve button in the VibeAds dashboard. A budget increase of more than 20%, or one that cannot be compared with the current budget, is not applied here: the reply has approvalRequired and an approvalUrl that the user opens in VibeAds to approve it, and nothing changes until then (check_approval reports the outcome). A new ad group goes through preview_ad_group first (error preview_required), and advice returns cannot_apply_here; neither changes anything. Approving decides the whole session: its other recommendations are recorded as rejected, the session closes, and a later approve_recommendation call on it returns session_not_pending. Conflicting or no-op changes are skipped. Changes with blast radius surgical or meaningful are measured afterwards and rolled back automatically if the campaign's results get worse. Requires a Pro or Max plan.",
-    schema: approveRecommendationSchema,
-    handler: approveRecommendation,
   },
   {
     name: "preview_ad_group",
@@ -480,7 +464,7 @@ export const TOOLS: readonly ToolDef[] = [
     // Changes a live campaign; adding one that is already there changes nothing.
     hints: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
     description:
-      "Adds up to 20 negative keywords to a published campaign in Google Ads right away: to the whole campaign, or to one ad group with adGroup. Searches a negative keyword matches stop showing the campaign's ads. Match types are EXACT and PHRASE (the default); a one-word PHRASE negative blocks every search containing that word. A negative that would block one of the campaign's own keywords, or one already there, is left out, and the reply lists them with the reason. The change is listed on the campaign's Optimize tab in VibeAds, where Undo removes it. An assistant can make 20 changes to a campaign a day, adding up to 100 keywords and negative keywords. Requires a Pro or Max plan.",
+      "Adds up to 20 negative keywords to a published campaign in Google Ads right away: to the whole campaign, or to one ad group with adGroup. Searches a negative keyword matches stop showing the campaign's ads. Match types are EXACT and PHRASE (the default); a one-word PHRASE negative blocks every search containing that word. A negative that would block one of the campaign's own keywords, or one already there, is left out, and the reply lists them with the reason. The change is listed on the campaign's Optimize tab in VibeAds, where Undo removes it. An assistant can make 20 changes to a campaign a day, adding up to 100 keywords and negative keywords. With sessionId and recommendationId, it carries out that recommendation from list_recommendations, whose applyWith gives these arguments: VibeAds checks they are the recommendation's, records it as approved, and measures the change, rolling it back if the campaign's results get worse. Requires a Pro or Max plan.",
     schema: addNegativeKeywordsSchema,
     handler: addNegativeKeywords,
   },
@@ -500,7 +484,7 @@ export const TOOLS: readonly ToolDef[] = [
     // Changes a live campaign; setting the status it already has changes nothing.
     hints: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
     description:
-      "Pauses up to 20 keywords of a published campaign in Google Ads right away, or turns paused ones back on (status paused or enabled). A paused keyword shows no ads and spends nothing; one turned back on spends within the campaign's daily budget. Keywords are named by their text, with matchType or adGroup when two ad groups hold the same text, as list_keywords shows them. The change is listed on the campaign's Optimize tab in VibeAds, where Undo reverses it. Requires a Pro or Max plan.",
+      "Pauses up to 20 keywords of a published campaign in Google Ads right away, or turns paused ones back on (status paused or enabled). A paused keyword shows no ads and spends nothing; one turned back on spends within the campaign's daily budget. Keywords are named by their text, with matchType or adGroup when two ad groups hold the same text, as list_keywords shows them. The change is listed on the campaign's Optimize tab in VibeAds, where Undo reverses it. With sessionId and recommendationId, it carries out that recommendation from list_recommendations, whose applyWith gives these arguments: VibeAds checks they are the recommendation's, records it as approved, and measures the change, rolling it back if the campaign's results get worse. Requires a Pro or Max plan.",
     schema: setKeywordStatusSchema,
     handler: setKeywordStatus,
   },
@@ -510,7 +494,7 @@ export const TOOLS: readonly ToolDef[] = [
     // Changes a live campaign's bids, or makes an approval link for a large raise.
     hints: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
     description:
-      "Sets the max CPC (the most Google charges for one click) of one ad group, or of one keyword in it, on a published campaign that uses Manual CPC bidding; on other bidding strategies Google sets the bids and the reply says so. A decrease, or an increase up to double the current max CPC and at most $50 a click, changes in Google Ads right away, within the campaign's daily budget, and is listed on the campaign's Optimize tab in VibeAds, where Undo puts the old max CPC back. A larger increase is a change the user approves: the reply has approvalRequired and an approvalUrl they open in VibeAds, and nothing changes until then (check_approval reports the outcome). Over $100 a click is refused. Keywords with a max CPC of their own keep it when their ad group's changes. Requires a Pro or Max plan.",
+      "Sets the max CPC (the most Google charges for one click) of one ad group, of one keyword in it, or of up to 20 keywords each with its own bid (keywords), on a published campaign that uses Manual CPC bidding; on other bidding strategies Google sets the bids and the reply says so. A decrease, or an increase up to double the current max CPC and at most $50 a click, changes in Google Ads right away, within the campaign's daily budget, and is listed on the campaign's Optimize tab in VibeAds, where Undo puts the old max CPC back. A larger increase is a change the user approves: the reply has approvalRequired and an approvalUrl they open in VibeAds, and nothing changes until then (check_approval reports the outcome). Over $100 a click is refused. Keywords with a max CPC of their own keep it when their ad group's changes. In a keywords list each bid follows the same limits, and a list with a larger increase changes nothing. With sessionId and recommendationId, it carries out that recommendation from list_recommendations, whose applyWith gives these arguments: VibeAds checks they are the recommendation's, records it as approved, and measures the change, rolling it back if the campaign's results get worse. Requires a Pro or Max plan.",
     schema: setMaxCpcSchema,
     handler: setMaxCpc,
   },
@@ -520,19 +504,9 @@ export const TOOLS: readonly ToolDef[] = [
     // Changes how much a live campaign can spend, or makes an approval link for a large raise.
     hints: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
     description:
-      "Sets a published campaign's daily budget, in dollars. A decrease, or an increase of up to 20%, changes in Google Ads right away and is listed on the campaign's Optimize tab in VibeAds, where Undo puts the old budget back. The 20% is measured from the lowest daily budget the campaign had in the last 24 hours. A larger increase, or any increase from a connection made with a VibeAds API key, is a change the user approves: the reply has approvalRequired and an approvalUrl they open in VibeAds, and nothing changes until then (check_approval reports the outcome). An assistant can change a campaign's daily budget 3 times a day. Requires a Pro or Max plan.",
+      "Sets a published campaign's daily budget, in dollars. A decrease, or an increase of up to 20%, changes in Google Ads right away and is listed on the campaign's Optimize tab in VibeAds, where Undo puts the old budget back. The 20% is measured from the lowest daily budget the campaign had in the last 24 hours. A larger increase, or any increase from a connection made with a VibeAds API key, is a change the user approves: the reply has approvalRequired and an approvalUrl they open in VibeAds, and nothing changes until then (check_approval reports the outcome). An assistant can change a campaign's daily budget 3 times a day. With sessionId and recommendationId, it carries out that recommendation from list_recommendations, whose applyWith gives these arguments: VibeAds checks they are the recommendation's, records it as approved, and measures the change, rolling it back if the campaign's results get worse. Requires a Pro or Max plan.",
     schema: setDailyBudgetSchema,
     handler: setDailyBudget,
-  },
-  {
-    name: "apply_google_recommendation",
-    title: "Apply a Google recommendation",
-    // Changes live campaigns in Google Ads and can raise a budget.
-    hints: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
-    description:
-      "Applies one of Google's recommendations in the user's Google Ads account, as Google recommends it, by its resourceName from list_google_recommendations. VibeAds reads the recommendation from Google again first and applies it when its rules allow: a budget decrease, or an increase of up to 20% measured from the lowest daily budget in the last 24 hours and asked over a connection the user made by signing in, a keyword that is not broad match, ad rotation and landing-page images, and Google's suggested ad text (callouts, sitelinks, responsive search ads and their headlines) when every line passes VibeAds' check against what the business has told it. Anything else is refused with the reason and nothing changes. A budget increase spends more of the advertiser's own money. Applied changes reach the campaigns in VibeAds at its next sync, within 6 hours. Up to 20 a day. Requires a Pro or Max plan.",
-    schema: applyGoogleRecommendationSchema,
-    handler: applyGoogleRecommendation,
   },
   {
     name: "dismiss_google_recommendation",
@@ -549,7 +523,7 @@ export const TOOLS: readonly ToolDef[] = [
     title: "Check an approval",
     hints: READ_ONLY,
     description:
-      "Reports on an approval: a link created by request_publish, a publish request_publish started itself (published true), or a link approve_recommendation, set_daily_budget, set_max_cpc or resume_campaign returned (approvalRequired). actionType says which: publish_campaign or apply_recommendation. status is one of: pending, approved, rejected, expired, executing, executed, failed. Pending means the user has not yet approved the link, which happens in their browser and not through this connection. For apply_recommendation, change says what it is (budget_increase, bid_change or resume_campaign), and executed means the change was made in Google Ads. For publish_campaign, executed means a publish job started, not that ads are serving: publishJob.status is processing, queued, completed or failed, with the current step and any error. Once publishJob.status is completed the campaign is in Google Ads, and publishJob.campaignStatus says whether ads can show. ENABLED: the campaign is live, can spend its daily budget, and can be paused from the dashboard. PAUSED: no ads are showing and nothing is being spent; publishJob.pausedMessage says why, and the campaign's page in VibeAds can start it. publishJob.billingMessage, when present, means Google Ads has no approved payment method, so no ads show and nothing is spent until one is added. Without campaignStatus, the campaign is in Google Ads and list_campaigns shows its status. Requires a Pro or Max plan.",
+      "Reports on an approval: a link created by request_publish, a publish request_publish started itself (published true), or a link set_daily_budget, set_max_cpc or resume_campaign returned (approvalRequired). actionType says which: publish_campaign or apply_recommendation. status is one of: pending, approved, rejected, expired, executing, executed, failed. Pending means the user has not yet approved the link, which happens in their browser and not through this connection. For apply_recommendation, change says what it is (budget_increase, bid_change or resume_campaign), and executed means the change was made in Google Ads. For publish_campaign, executed means a publish job started, not that ads are serving: publishJob.status is processing, queued, completed or failed, with the current step and any error. Once publishJob.status is completed the campaign is in Google Ads, and publishJob.campaignStatus says whether ads can show. ENABLED: the campaign is live, can spend its daily budget, and can be paused from the dashboard. PAUSED: no ads are showing and nothing is being spent; publishJob.pausedMessage says why, and the campaign's page in VibeAds can start it. publishJob.billingMessage, when present, means Google Ads has no approved payment method, so no ads show and nothing is spent until one is added. Without campaignStatus, the campaign is in Google Ads and list_campaigns shows its status. Requires a Pro or Max plan.",
     schema: checkApprovalSchema,
     handler: checkApproval,
   },

@@ -176,7 +176,7 @@ Works right after you connect Google Ads, before anything is imported:
 
 | Tool | Purpose |
 |---|---|
-| `list_campaigns` | Enumerate all campaigns with status, budget, category |
+| `list_campaigns` | Your campaigns in VibeAds (published, imported and drafts) with status, budget and category. Campaigns only in your Google Ads account are listed by `find_campaigns_to_import` |
 | `get_campaign_details` | Deep dive on one campaign: metrics, ad groups, targeting, landing pages, diagnostics |
 | `get_account_health_score` | 0-100 score + letter grade across 6 dimensions, optionally per-campaign |
 | `get_search_term_analysis` | Wasted spend + winners from each campaign's latest synced search terms, which cover the 7 days before that sync (configurable cost threshold) |
@@ -197,11 +197,10 @@ Write tools talk to the secure server-side VibeAds gateway and need **only `VIBE
 
 | Tool | Purpose |
 |---|---|
-| `generate_strategy` | Draft a full campaign strategy (keywords, ad copy, 3+ ad groups) server-side. Costs 13 credits. Draft only — nothing is published, no money is spent |
+| `generate_strategy` | Draft a full campaign strategy (keywords, ad copy, 3+ ad groups) server-side, with a Brand ad group for searches of your business's name, and on Max an ad group for each competitor you name. Costs 13 credits. Draft only: nothing is published, no money is spent |
 | `get_strategy_status` | Poll a strategy job: status, phase, and drafted ad groups once complete |
 | `apply_strategy` | Turn a completed preview into a real draft campaign (ad groups, keywords, targeting, ad copy, extensions). Costs 6 credits + 3 per ad group for image generation. Draft only — not live, no ad money spent |
-| `list_recommendations` | Pending optimization recommendations awaiting approval, with the session + recommendation IDs |
-| `approve_recommendation` | Execute ONE diagnosed optimization. Approving closes its session and rejects the other recommendations in it. A budget increase over 20% returns an approval link instead |
+| `list_recommendations` | Pending optimization recommendations, each with the tool and exact arguments that carry it out (its session and recommendation IDs included), or a link to approve it in VibeAds when no tool makes that change |
 | `preview_ad_group` | Show a new ad group (keywords, three ads, landing page plan) before it is added. Creates a preview only |
 | `add_ad_group` | Add a previewed ad group. On a published campaign it starts serving at once, within the campaign's budget |
 | `request_publish` | Start the publish flow for a campaign that has ad groups — returns a human-approval URL because publishing spends real money. With more than one Google Ads account it asks which one, and publishes to that one only |
@@ -211,9 +210,8 @@ Write tools talk to the secure server-side VibeAds gateway and need **only `VIBE
 | `add_negative_keywords` | Add up to 20 negative keywords to a campaign or one ad group, at once. One that would block the campaign's own keywords is left out |
 | `add_keywords` | Add up to 20 keywords to one ad group, at once, at the ad group's default max CPC |
 | `set_keyword_status` | Pause keywords, or turn paused ones back on |
-| `set_max_cpc` | Set an ad group's or a keyword's max CPC on a Manual CPC campaign. Up to double and $50 a click at once; more returns an approval URL |
+| `set_max_cpc` | Set an ad group's, a keyword's or a list of keywords' max CPC on a Manual CPC campaign. Up to double and $50 a click at once; more returns an approval URL |
 | `set_daily_budget` | Set a campaign's daily budget. A decrease runs at once; with an API key any increase returns an approval URL |
-| `apply_google_recommendation` | Apply one of Google's recommendations within VibeAds' rules: budget changes up to +20% (from the lowest in the last 24 hours; never raised over an API key), exact or phrase keywords, and Google's ad text only when every line passes VibeAds' claim check. Up to 20 a day |
 | `dismiss_google_recommendation` | Remove one of Google's recommendations from its list. No campaign changes |
 | `check_approval` | Poll a publish or change approval: pending → approved → executing → executed (or rejected / expired / failed) |
 
@@ -251,9 +249,9 @@ For maximum security, rotate your API key whenever a device changes hands or an 
 ## Requirements
 
 - **Node.js ≥ 20** (for `npx` runtime)
-- **Active VibeAds account** — free tier is sufficient to generate a key
-- **Pro or Max plan** — required for the write tools (read tools work on any plan)
-- **At least one published campaign** — diagnostics require synced data from Google Ads
+- **Active VibeAds account**: the free plan is enough to generate a key
+- **Pro or Max plan**: needed for the write tools (read tools work on any plan)
+- **At least one published campaign**: diagnostics need synced data from Google Ads
 
 ---
 

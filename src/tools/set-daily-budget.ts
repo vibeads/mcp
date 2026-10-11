@@ -10,11 +10,12 @@
 
 import { z } from "zod";
 import { callGateway } from "../gateway.js";
-import { campaignIdField, type EditReply, editReply } from "./edit-reply.js";
+import { campaignIdField, type EditReply, editReply, recommendationFields } from "./edit-reply.js";
 
 export const setDailyBudgetSchema = z.object({
   campaignId: campaignIdField,
   dailyBudget: z.number().describe("The new daily budget in US dollars, from 1 to 10,000."),
+  ...recommendationFields,
 });
 
 export type SetDailyBudgetInput = z.infer<typeof setDailyBudgetSchema>;
